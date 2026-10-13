@@ -332,7 +332,7 @@ last 24 hours, hot leads to call, and handed-off leads still waiting.
 
 | Stage | Setup |
 |---|---|
-| Development | The app on the PC, with a cloudflared tunnel for webhooks. The development machine has neither Docker nor PostgreSQL installed, so the database choice (a hosted free PostgreSQL with pgvector, or a local install) is made in the M1 plan. |
+| Development | The app on the PC, with a cloudflared tunnel for webhooks. PostgreSQL is installed locally from the Windows installer. pgvector for M2 is decided in the M2 plan. |
 | Demo and first clients | One Oracle Cloud Always Free VM (Ubuntu) running the app as a systemd service, PostgreSQL with pgvector on the same VM, and Caddy with a free DuckDNS name for HTTPS |
 | Backup | Nightly `pg_dump`, 7 days kept |
 | CI | One GitHub Actions workflow runs the unit tests on every push, against a PostgreSQL service |
@@ -427,6 +427,12 @@ build: any shortcut taken is added here. It is the refinement backlog once M3 is
 | Operations | Dedicated vector database | Millions of chunks | pgvector is enough well beyond this scale |
 | Operations | Load testing, automated end-to-end tests on live WhatsApp | Before a large client | |
 | Operations | Token rotation, encryption-key rotation | Before paying clients | |
+| Data | Alembic migrations (M1 uses `create_all`, which cannot change an existing table) | Before the first column change on a database with real data | Do this at the start of M2 |
+| Agent | Canned replies ("please type", the limit notice, the failure fallback) in the user's language (M1 sends English) | An institute's users mostly write Hindi or Odia | Small: pick by the script of the user's last message |
+| Agent | Batching messages relayed to the owner after a handoff (M1 forwards each one) | An owner reports too many alerts | |
+| Agent | Owner testing the bot as a student from the same Telegram account (M1 treats the owner's chat as owner-only) | Owners ask during onboarding | A `/test` mode for the owner chat |
+| Operations | Async code (M1 is synchronous, using threads) | Many simultaneous chats on a Linux server | psycopg's async mode does not run on the default Windows event loop, so this also needs a Linux development setup |
+| Operations | Cleaning up per-lead locks (M1 keeps one small lock object per lead for the life of the process) | Hundreds of thousands of leads in one process | Replaced anyway by the database lock needed for more than one process |
 
 ## 16. Not yet verified
 
@@ -437,9 +443,9 @@ These were assumed during design. Each is checked at the point shown.
 | Claude Haiku 4.5 writes natural Odia, including Odia in Latin script | M1 behaviour checks, read by a native speaker |
 | Sarvam AI's chat model handles Odia well and its tool calling is reliable. Its docs describe an OpenAI-style API with tool calling and Indian-language training but do not name Odia for the chat model, and the model list differs between doc pages | M1 behaviour checks |
 | Meta's WhatsApp test number: free, no business verification, up to 5 recipient numbers | M1 plan |
-| Replies within 24 hours of the user's last WhatsApp message are free | M1 plan |
+| Replies within 24 hours of the user's last WhatsApp message are free. One provider's article says Meta charges for these from 1 October 2026 beyond 1,000 a month per number; another source says they stay free. Not resolved | Meta's own pricing page, before the first WhatsApp client |
 | Cost of roughly ₹1–4 per lead. Prompt caching only applies above a minimum prompt length; a short facts block may not be cached, which puts the cost at the upper end | M1, from measured token use |
 | fastembed provides `BAAI/bge-small-en-v1.5` at 384 dimensions | M2 plan |
-| A free hosted PostgreSQL with pgvector is available for development | M1 plan |
+| pgvector can be installed on the local Windows PostgreSQL, or a hosted PostgreSQL with pgvector is used for development | M2 plan |
 | Oracle Cloud Always Free signup works with an Indian card | Before the first demo. Fallback: run demos from the PC through the tunnel |
 | What India's Digital Personal Data Protection Act requires for minors' data and consent | Before the first paying client |
