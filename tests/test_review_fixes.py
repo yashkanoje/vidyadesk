@@ -174,6 +174,30 @@ def test_bad_arguments_and_unknown_tools_are_reported_back_to_the_model(session)
     assert lead.interest is None
 
 
+def test_the_real_claude_binding_builds_and_asks_for_one_tool_call_at_a_time(monkeypatch):
+    # Every other graph test uses a scripted model. This one builds the real binding (no API call is made),
+    # because a mistake there would fail on every real message.
+    from leadagent.agent import graph as graph_module
+
+    captured = {}
+    monkeypatch.setattr(graph_module, "build_graph", lambda model, checkpointer: captured.setdefault("model", model))
+    graph_module.get_graph.cache_clear()
+    try:
+        graph_module.get_graph()
+    finally:
+        graph_module.get_graph.cache_clear()
+    assert captured["model"].kwargs["tool_choice"] == {"type": "auto", "disable_parallel_tool_use": True}
+    assert {tool["name"] for tool in captured["model"].kwargs["tools"]} == {"save_lead", "set_interest", "handoff"}
+
+
+def test_the_eval_runner_binds_claude_the_same_way():
+    from evals.run import make_model
+
+    model, cache_prompt = make_model("anthropic")
+    assert cache_prompt is True
+    assert model.kwargs["tool_choice"] == {"type": "auto", "disable_parallel_tool_use": True}
+
+
 # 7. /delete during a reply left the conversation in the chat-state tables.
 
 
