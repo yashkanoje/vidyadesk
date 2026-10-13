@@ -4,6 +4,7 @@
     python -m leadagent.cli add-institute --slug brightpath --name "BrightPath Classes" --facts examples/brightpath.yaml
     python -m leadagent.cli set-owner --slug brightpath --chat-id 123456789
     python -m leadagent.cli set-webhook --slug brightpath
+    python -m leadagent.cli set-whatsapp --slug brightpath --number-id 123456789012345
 """
 import argparse
 import getpass
@@ -14,9 +15,11 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import httpx
 
+from leadagent.agent.graph import get_checkpointer
 from leadagent.channels import telegram
 from leadagent.crypto import encrypt
 from leadagent.facts import Facts, FactsError, load_facts_file
+from leadagent.locks import lock_for
 from leadagent.settings import get_settings
 from leadagent.store import repo
 from leadagent.store.db import create_tables, session_scope
@@ -67,6 +70,30 @@ def set_facts(session, slug, facts: Facts) -> Institute:
 def set_owner(session, slug, chat_id) -> Institute:
     institute = _existing(session, slug)
     institute.owner_telegram_chat_id = str(chat_id)
+    # Telegram sends /start when the owner first opens the bot, before they can be registered here, and that
+    # message made them a lead. Remove it, or the owner gets their own follow-up and shows up in the summary.
+    lead = repo.find_lead(session, institute.id, "telegram", str(chat_id))
+    if lead is not None:
+        with lock_for(lead.id):
+            repo.delete_lead(session, lead)
+            session.flush()
+            get_checkpointer().delete_thread(str(lead.id))
+    return institute
+
+
+def set_whatsapp(session, slug, number_id, token) -> Institute:
+    """Attach a WhatsApp number to an institute, or replace its access token (Meta's test tokens last about a day)."""
+    institute = _existing(session, slug)
+    number_id, token = (number_id or "").strip(), (token or "").strip()
+    if not number_id:
+        raise ValueError("the WhatsApp phone number ID is empty")
+    if not token:
+        raise ValueError("the WhatsApp access token is empty")
+    other = repo.institute_by_whatsapp_number(session, number_id)
+    if other is not None and other.id != institute.id:
+        raise ValueError(f"WhatsApp number {number_id} is already attached to institute {other.slug!r}")
+    institute.whatsapp_phone_number_id = number_id
+    institute.whatsapp_token_enc = encrypt(token)
     return institute
 
 
@@ -87,6 +114,9 @@ def main(argv=None) -> int:
     owner = commands.add_parser("set-owner")
     owner.add_argument("--slug", required=True)
     owner.add_argument("--chat-id", required=True)
+    whatsapp = commands.add_parser("set-whatsapp")
+    whatsapp.add_argument("--slug", required=True)
+    whatsapp.add_argument("--number-id", required=True)
     webhook = commands.add_parser("set-webhook")
     webhook.add_argument("--slug", required=True)
     args = parser.parse_args(argv)
@@ -121,6 +151,9 @@ def main(argv=None) -> int:
             elif args.command == "set-owner":
                 set_owner(session, args.slug, args.chat_id)
                 print("Owner chat saved.")
+            elif args.command == "set-whatsapp":
+                set_whatsapp(session, args.slug, args.number_id, getpass.getpass("WhatsApp access token: "))
+                print("WhatsApp number and token saved.")
             elif args.command == "set-webhook":
                 base_url = get_settings().public_base_url
                 if not base_url.startswith("https://"):

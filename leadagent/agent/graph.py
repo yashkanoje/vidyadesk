@@ -6,9 +6,10 @@ from langchain_core.messages import AIMessage, SystemMessage, ToolMessage, trim_
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.graph import END, START, MessagesState, StateGraph
-from langgraph.prebuilt import ToolNode, tools_condition
+from langgraph.prebuilt import tools_condition
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
+from pydantic import ValidationError
 
 from leadagent import notify
 from leadagent.agent.prompts import system_prompt
@@ -66,19 +67,24 @@ def gate(state: State, config: RunnableConfig) -> dict:
         lead = repo.get_lead(session, ids["institute_id"], ids["lead_id"])
         if lead is None:
             return {"route": "canned", "reply": ""}
+        # The limit is checked first, so it also caps relays to the owner and "please type" replies.
+        count = repo.user_messages_last_24h(session, lead.id, utcnow())
+        if count > LIMIT + 1:
+            return {"route": "canned", "reply": ""}  # told once already; silent until the count drops
+        if count == LIMIT + 1:
+            # shortcut: two messages logged at the same instant can both skip this exact count and lose the
+            # notice; store a "limit notified at" time on the lead if that is ever seen
+            institute = repo.get_institute(session, lead.institute_id)
+            notify.alert(
+                institute,
+                f"⚠️ Lead #{lead.id} sent more than {LIMIT} messages in 24 hours. The assistant will not reply "
+                f"to them again until the count drops.\n{notify.describe(lead)}",
+            )
+            return {"route": "canned", "reply": LIMIT_REPLY}
         if lead.stage == "handed_off":
             return {"route": "relay", "reply": ""}
         if state["kind"] != "text":
             return {"route": "canned", "reply": NONTEXT_REPLY}
-        if repo.user_messages_last_24h(session, lead.id, utcnow()) > LIMIT:
-            repo.hand_off(session, lead, "daily message limit reached")
-            institute = repo.get_institute(session, lead.institute_id)
-            notify.alert(
-                institute,
-                f"⚠️ Lead #{lead.id} sent more than {LIMIT} messages in 24 hours. The assistant has stopped "
-                f"replying to them.\n{notify.describe(lead)}\nSend /resume {lead.id} to switch it back on.",
-            )
-            return {"route": "canned", "reply": LIMIT_REPLY}
     return {"route": "agent", "reply": ""}
 
 
@@ -117,12 +123,34 @@ def make_agent(model, cache_prompt):
     return agent
 
 
+_TOOLS_BY_NAME = {tool.name: tool for tool in TOOLS}
+
+
+def run_tools(state: State, config: RunnableConfig) -> dict:
+    """Run the model's tool calls one after another, in the order the model gave them.
+
+    LangGraph's ToolNode runs them in parallel threads. With save_lead and handoff in one message, the
+    handoff alert then went out before the name was saved, and the handoff itself was sometimes overwritten.
+    """
+    results = []
+    for call in state["messages"][-1].tool_calls:
+        tool = _TOOLS_BY_NAME.get(call["name"])
+        if tool is None:
+            results.append(ToolMessage(f"Error: there is no tool called {call['name']}.", tool_call_id=call["id"]))
+            continue
+        try:
+            results.append(tool.invoke(call, config))
+        except ValidationError as exc:  # wrong arguments: tell the model, so it can correct itself
+            results.append(ToolMessage(f"Error: invalid arguments for {call['name']}. {exc}", tool_call_id=call["id"]))
+    return {"messages": results}
+
+
 def build_graph(model, checkpointer, cache_prompt=True):
     builder = StateGraph(State)
     builder.add_node("gate", gate)
     builder.add_node("relay", relay)
     builder.add_node("agent", make_agent(model, cache_prompt))
-    builder.add_node("tools", ToolNode(TOOLS))
+    builder.add_node("tools", run_tools)
     builder.add_edge(START, "gate")
     builder.add_conditional_edges("gate", lambda state: state["route"], {"relay": "relay", "canned": END, "agent": "agent"})
     builder.add_edge("relay", END)
@@ -163,4 +191,4 @@ def get_plain_model():
 
 @lru_cache
 def get_graph():
-    return build_graph(_chat(500).bind_tools(TOOLS), get_checkpointer())
+    return build_graph(_chat(500).bind_tools(TOOLS, parallel_tool_calls=False), get_checkpointer())

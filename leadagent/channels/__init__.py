@@ -20,4 +20,8 @@ def deliver(institute, channel, user_id, text, attempts=3, sleep=time.sleep) -> 
             log.warning("%s send failed for institute %s (%s), attempt %d", channel, institute.slug, type(exc).__name__, attempt + 1)
             if attempt < attempts - 1:
                 sleep(2**attempt)
+        except Exception as exc:
+            # Not a network or HTTP error (for example a stored token that no longer decrypts): retrying cannot help.
+            log.error("%s send failed for institute %s (%s)", channel, institute.slug, type(exc).__name__)
+            return False
     return False

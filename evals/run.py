@@ -47,7 +47,7 @@ def make_model(provider):
     model = ChatAnthropic(
         model=settings.llm_model, api_key=settings.anthropic_api_key, max_tokens=500, timeout=30, max_retries=2
     )
-    return model.bind_tools(TOOLS), True
+    return model.bind_tools(TOOLS, parallel_tool_calls=False), True
 
 
 def run_conversation(graph, institute_id, conversation):

@@ -22,6 +22,8 @@ def digest_text(session, institute, now) -> str | None:
     if not (new or hot or waiting):
         return None
     lines = [f"☀️ Daily summary: {institute.name}", f"New leads in the last 24 hours: {len(new)}"]
+    if new:
+        lines += _listing("New leads:", new)
     if hot:
         lines += _listing("Hot leads to call:", hot)
     if waiting:

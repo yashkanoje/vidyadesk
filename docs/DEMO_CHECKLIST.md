@@ -42,7 +42,11 @@ if a label below does not match, look for the nearest equivalent.
    Restart the app.
 4. In the dashboard's webhook settings, enter `<PUBLIC_BASE_URL>/webhook/whatsapp` and the verify token,
    then subscribe to the `messages` field.
-5. Add a third institute with `--whatsapp-number-id <phone number ID>` and paste the access token when asked.
+5. Attach the test number to an institute you already added (it keeps its Telegram bot and owner):
+   `.\.venv\Scripts\python -m leadagent.cli set-whatsapp --slug brightpath --number-id <phone number ID>`
+   and paste the access token when asked.
+6. When the temporary token expires (about a day), get a new one from the dashboard and run the same
+   `set-whatsapp` command again. Replies fail and the owner gets "Could not deliver" alerts until you do.
 
 - [ ] A WhatsApp message to the test number gets a reply.
 - [ ] The lead's phone number is filled in without asking.

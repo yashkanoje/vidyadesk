@@ -51,6 +51,16 @@ def get_or_create_lead(session, institute_id, channel, channel_user_id):
     ).one()
 
 
+def find_lead(session, institute_id, channel, channel_user_id):
+    return session.scalars(
+        select(Lead).where(
+            Lead.institute_id == institute_id,
+            Lead.channel == channel,
+            Lead.channel_user_id == channel_user_id,
+        )
+    ).one_or_none()
+
+
 def get_lead(session, institute_id, lead_id):
     return session.scalars(
         select(Lead).where(Lead.id == lead_id, Lead.institute_id == institute_id)
@@ -109,7 +119,9 @@ def save_lead_fields(session, lead, **fields):
     for key in LEAD_FIELDS:
         value = (fields.get(key) or "").strip()
         if value:
-            setattr(lead, key, value)
+            # Cut to the column's length (None for notes, which is unbounded): an over-long value used to fail
+            # the whole turn and lose the other details with it.
+            setattr(lead, key, value[: Lead.__table__.c[key].type.length])
     if lead.stage in ("new", "collecting") and _has_core_details(lead):
         lead.stage = "qualified"
     return lead
@@ -138,8 +150,9 @@ def _is_daytime(timezone_name, now) -> bool:
     return 9 <= now.astimezone(ZoneInfo(timezone_name)).hour < 21
 
 
-def due_nudges(session, now):
-    rows = session.execute(
+def due_nudges(session, now, lead_id=None):
+    """Leads that should get their one follow-up now. With lead_id, re-check just that lead."""
+    query = (
         select(Lead, Institute.timezone)
         .join(Institute, Institute.id == Lead.institute_id)
         .where(
@@ -151,7 +164,10 @@ def due_nudges(session, now):
             Lead.last_user_msg_at >= now - timedelta(hours=20),
         )
         .order_by(Lead.id)
-    ).all()
+    )
+    if lead_id is not None:
+        query = query.where(Lead.id == lead_id)
+    rows = session.execute(query).all()
     return [lead for lead, timezone_name in rows if _is_daytime(timezone_name, now)]
 
 

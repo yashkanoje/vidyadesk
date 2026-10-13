@@ -3,7 +3,7 @@
 An AI agent that answers student and parent enquiries for coaching institutes on WhatsApp
 and Telegram, records each one as a lead, and makes sure the owner follows up.
 
-**Status:** M1 (core agent) code is built and its 133 automatic tests pass. Still to do for M1: the behaviour checks
+**Status:** M1 (core agent) code is built and its 145 automatic tests pass. Still to do for M1: the behaviour checks
 against real Claude (`python -m evals.run`) and the demo checklist. M2 (RAG) and M3 (dashboard) not started.
 
 ## What it does

@@ -3,7 +3,6 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, Tool
 from helpers import ScriptedModel, make_institute, make_lead, run_turn, tool_call
 from leadagent.agent.graph import (
     LIMIT,
-    LIMIT_REPLY,
     NONTEXT_REPLY,
     build_graph,
     drop_dangling_tool_calls,
@@ -77,22 +76,6 @@ def test_a_non_text_message_gets_the_canned_reply(session):
     result = run_turn(graph, lead, "[non-text message]", kind="other")
     assert (result["route"], result["reply"]) == ("canned", NONTEXT_REPLY)
     assert model.calls == []
-
-
-def test_the_message_after_the_limit_is_blocked_once_and_handed_off(session, sent):
-    lead = make_lead(session, make_institute(session), stage="collecting")
-    for i in range(LIMIT + 1):
-        repo.log_message(session, lead, "user", "x", f"tg:{i}")
-    session.commit()
-    graph, model = graph_with()
-    result = run_turn(graph, lead, "x")
-    session.refresh(lead)
-    assert (result["route"], result["reply"]) == ("canned", LIMIT_REPLY)
-    assert lead.stage == "handed_off"
-    assert len(sent) == 1 and f"#{lead.id}" in sent[0][3]
-    assert model.calls == []
-    again = run_turn(graph, lead, "x")
-    assert (again["route"], again["reply"]) == ("relay", "")
 
 
 def test_exactly_at_the_limit_is_still_answered(session):

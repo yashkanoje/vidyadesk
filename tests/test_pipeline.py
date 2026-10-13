@@ -90,11 +90,14 @@ def test_a_model_failure_sends_the_fallback_and_alerts_the_owner(session, sent):
     assert repo.recent_messages(session, lead.id, 10)[0].text == "hi"  # the user's message was kept
 
 
-def test_an_empty_model_reply_sends_the_fallback(session, sent):
+def test_an_empty_model_reply_sends_the_fallback_and_alerts_the_owner(session, sent):
     institute = make_institute(session)
     graph, _ = graph_with(AIMessage(""))
     process(tg(institute, "hi"), graph=graph)
-    assert sent == [("telegram", institute.id, "555", FALLBACK)]
+    lead = the_lead(session)
+    assert ("telegram", institute.id, "555", FALLBACK) in sent
+    owner_alerts = [s for s in sent if s[2] == "999"]
+    assert len(owner_alerts) == 1 and f"#{lead.id}" in owner_alerts[0][3]
 
 
 def test_a_failed_delivery_alerts_the_owner(session, sent, monkeypatch):
