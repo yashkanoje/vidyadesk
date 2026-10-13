@@ -434,6 +434,36 @@ build: any shortcut taken is added here. It is the refinement backlog once M3 is
 | Operations | Async code (M1 is synchronous, using threads) | Many simultaneous chats on a Linux server | psycopg's async mode does not run on the default Windows event loop, so this also needs a Linux development setup |
 | Operations | Cleaning up per-lead locks (M1 keeps one small lock object per lead for the life of the process) | Hundreds of thousands of leads in one process | Replaced anyway by the database lock needed for more than one process |
 
+### From the M1 code review (14 October 2026)
+
+An independent review of the whole M1 branch found no critical issues and ten important ones. The ten are
+fixed, each with a test (`tests/test_review_fixes.py`). The smaller findings below are **not fixed**.
+
+| Area | Not fixed | Fix it when | Recommendation |
+|---|---|---|---|
+| Agent | Every incoming message uses up a lead ID, so the IDs owners see in alerts jump (1, 6, 40) | Owners find the IDs awkward to type | Look the lead up first and insert only when it is missing |
+| Agent | A phone number the user gives replaces the WhatsApp sender's own number in alerts | An owner calls a wrong number | Show both |
+| Agent | Text the user influences goes into owner alerts with its line breaks, so a user can fake alert lines such as "Send /delete 7" | Before paying clients | Flatten line breaks in user-influenced text |
+| Agent | A reply is logged as sent even when delivery failed | With the dashboard (M3) | Mark it undelivered |
+| Agent | Three quick messages get three separate replies | Users complain | Wait a few seconds and answer them together |
+| Agent | The limit notice can be skipped when two messages are logged at the same instant | Seen in practice | Store a "limit notified at" time on the lead |
+| Channels | A signed webhook body that is not JSON gets a 400, which Telegram and Meta retry | Seen in the logs | Answer 200 and log it |
+| Channels | Errors that will not go away (400, 401, 403) are retried, and Telegram's "retry after" on a 429 is ignored | Rate limits are hit | Retry only network errors, 429 and 5xx |
+| Channels | One malformed WhatsApp message drops the others in the same webhook; a WhatsApp reaction gets "Please type…" | Before the first WhatsApp client | Skip the bad message; ignore reactions |
+| Channels | The Telegram route reads the whole body before checking the secret, with no size limit | Server deployment | Limit body size at the proxy |
+| Jobs | The summary's waiting list is oldest first and capped at 10, and only `/resume` or `/delete` clears it | An owner has more than 10 waiting | Newest first, and add `/close` |
+| Jobs | A restart between 08:00 and 08:30 can skip that day's summary; a summary whose delivery failed still counts as sent | Server deployment | Store the date of the last summary |
+| Data | Two message queries filter by lead only, not by institute (safe today, since lead IDs are unique) | M3 | Add the institute filter |
+| Operations | Saved chat state is never pruned | Storage growth is noticed | Delete old checkpoints |
+| Operations | The graph is built on the first message, not at start-up, so a broken setup loses that first message | Server deployment | Build it at start-up |
+| Operations | The web server's access log prints the WhatsApp verify token; a missing-setting error can print part of another setting | Server deployment | Keep the handshake out of the access log |
+| Operations | A crash in the middle of a reply loses that reply (the user's message is kept) | More than one process | Needs a job queue |
+| Operations | No spending cap per institute; many accounts could run up the model bill | Before paying clients | Daily budget per institute |
+| Operations | LangSmith tracing, when switched on, sends conversations to a third party | Before switching it on for a client | Tell the institute, or keep it off |
+| Docs | The README has no command for generating `FERNET_KEY` | Next documentation pass | Copy it from the M1 plan |
+| Command line | A mistyped facts path gives a traceback; an empty Telegram token is accepted | Next time the command line is touched | Catch both |
+| Tests | Weak spots: one delivery test never calls `deliver`; one isolation test would pass if the tool always failed; no tests at the exact 2 h, 20 h, 09:00 and 21:00 edges; no test that tokens stay out of logs; `cli.main()` and app start-up are untested | Before M2 | |
+
 ## 16. Not yet verified
 
 These were assumed during design. Each is checked at the point shown.
