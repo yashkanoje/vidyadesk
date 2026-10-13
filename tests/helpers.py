@@ -1,3 +1,4 @@
+from langchain_core.messages import AIMessage, HumanMessage
 from leadagent.crypto import encrypt
 from leadagent.store.models import Institute, Lead
 
@@ -49,3 +50,34 @@ def make_lead(session, institute, user_id="111", channel="telegram", **fields):
     session.add(lead)
     session.commit()
     return lead
+
+
+
+
+class ScriptedModel:
+    """Stands in for the chat model: returns the given replies in order and records what it was sent."""
+
+    def __init__(self, *replies):
+        self.replies = list(replies)
+        self.calls = []
+
+    def invoke(self, messages, config=None):
+        self.calls.append(messages)
+        reply = self.replies.pop(0)
+        if isinstance(reply, Exception):
+            raise reply
+        return reply
+
+
+def tool_call(tool, /, **args):
+    # "tool" is positional-only so that a tool argument may itself be called "name"
+    return AIMessage(content="", tool_calls=[{"name": tool, "args": args, "id": f"call_{tool}", "type": "tool_call"}])
+
+
+def run_turn(graph, lead, text, kind="text"):
+    from leadagent.agent.graph import thread_config
+
+    return graph.invoke(
+        {"messages": [HumanMessage(text)], "kind": kind},
+        thread_config(lead.institute_id, lead.id),
+    )

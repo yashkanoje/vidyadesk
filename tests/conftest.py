@@ -28,9 +28,11 @@ import pytest
 
 @pytest.fixture(scope="session", autouse=True)
 def _tables():
+    from leadagent.agent.graph import get_checkpointer
     from leadagent.store.db import create_tables
 
     create_tables()
+    get_checkpointer()  # creates LangGraph's checkpoint tables
 
 
 @pytest.fixture(autouse=True)
@@ -40,7 +42,12 @@ def _clean(_tables):
     from leadagent.store.db import engine
 
     with engine.begin() as conn:
-        conn.execute(text("TRUNCATE institutes, leads, messages RESTART IDENTITY CASCADE"))
+        conn.execute(
+            text(
+                "TRUNCATE institutes, leads, messages, checkpoints, checkpoint_blobs, checkpoint_writes "
+                "RESTART IDENTITY CASCADE"
+            )
+        )
 
 
 @pytest.fixture
