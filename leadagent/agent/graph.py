@@ -1,3 +1,4 @@
+import atexit
 from functools import lru_cache
 
 from langchain_anthropic import ChatAnthropic
@@ -138,6 +139,7 @@ def get_checkpointer() -> PostgresSaver:
         open=True,
         kwargs={"autocommit": True, "prepare_threshold": 0, "row_factory": dict_row},
     )
+    atexit.register(pool.close)  # without this the pool's worker threads delay interpreter exit
     saver = PostgresSaver(pool)
     saver.setup()
     return saver

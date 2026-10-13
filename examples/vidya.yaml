@@ -1,0 +1,21 @@
+institute_name: Vidya Commerce Academy
+address: Near Golebazar Chowk, Sambalpur, Odisha 768001
+phone: "0663-2500000"
+timings: Monday to Saturday, 7 am to 7 pm
+courses:
+  - name: Class 11 and 12 Commerce
+    for_classes: Class 11 and 12
+    fee: "₹24,000 per year"
+    batches:
+      - Mon to Sat 7 am to 9 am
+      - Mon to Sat 4 pm to 6 pm
+  - name: CA Foundation
+    for_classes: Class 12 pass and above
+    fee: "₹38,000 for the full course"
+    batches:
+      - Mon to Fri 6 pm to 8 pm
+faq:
+  - q: Do you teach in Odia or English?
+    a: Classes are taught in a mix of Odia and English.
+  - q: Are there weekly tests?
+    a: Yes, there is a test every Sunday morning.
