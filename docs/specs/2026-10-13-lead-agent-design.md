@@ -363,7 +363,8 @@ The app runs as a single process. That is enough for a handful of institutes.
 `evals/conversations.yaml`)
 
 - **Languages:** English, Hindi, Hinglish, Odia, and Odia in Latin script. The reply is in
-  the same language.
+  the same language. The Odia conversations are also run on Sarvam AI's chat model, and a
+  native speaker compares the two sets of replies (see Section 15).
 - **Missing facts:** a question about a fee that is not in the facts ends in a handoff.
   A script checks that every ₹ amount in a reply appears in the facts or in a retrieved
   passage.
@@ -406,7 +407,8 @@ build: any shortcut taken is added here. It is the refinement backlog once M3 is
 | Agent | A graph node per lead stage | Conversations need strict steps | Unlikely to be needed |
 | Agent | LangGraph `interrupt()` for handoff | The owner should reply through the bot | Revisit with the dashboard's reply feature |
 | Agent | Nudge as a model tool | — | Keep nudges rule-based |
-| Agent | Voice notes | After M1 | First refinement: voice notes are very common on WhatsApp in India |
+| Agent | Voice notes | After M1 | First refinement: voice notes are very common on WhatsApp in India. Use Sarvam AI's Saaras speech-to-text in translate mode (Odia or Hindi speech to English text), listed at ₹30 per hour of audio |
+| Agent | Sarvam AI chat model for Odia conversations | A native speaker judges Claude's Odia clearly worse in the M1 comparison | Add a per-institute model setting. The tool-calling and safety checks must pass on Sarvam before any institute uses it |
 | Agent | Images (photos of mark sheets, fee slips) | An institute asks | Low priority |
 | Data | Nudges table, more than one nudge, paid WhatsApp template messages after 24 hours | An institute wants longer follow-up | Needs Meta template approval and a per-message budget |
 | Data | Google Sheet copy, two-way Sheet sync | An owner refuses the dashboard | CSV export covers most of it |
@@ -433,6 +435,7 @@ These were assumed during design. Each is checked at the point shown.
 | Assumption | Check by |
 |---|---|
 | Claude Haiku 4.5 writes natural Odia, including Odia in Latin script | M1 behaviour checks, read by a native speaker |
+| Sarvam AI's chat model handles Odia well and its tool calling is reliable. Its docs describe an OpenAI-style API with tool calling and Indian-language training but do not name Odia for the chat model, and the model list differs between doc pages | M1 behaviour checks |
 | Meta's WhatsApp test number: free, no business verification, up to 5 recipient numbers | M1 plan |
 | Replies within 24 hours of the user's last WhatsApp message are free | M1 plan |
 | Cost of roughly ₹1–4 per lead. Prompt caching only applies above a minimum prompt length; a short facts block may not be cached, which puts the cost at the upper end | M1, from measured token use |
