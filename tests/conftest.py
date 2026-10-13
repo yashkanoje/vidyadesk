@@ -49,3 +49,19 @@ def session():
 
     with SessionLocal() as db:
         yield db
+
+
+@pytest.fixture
+def sent(monkeypatch):
+    """Replace both channels' send functions and record what would have been sent."""
+    calls = []
+
+    def recorder(channel):
+        def fake_send(institute, user_id, text, client=None):
+            calls.append((channel, institute.id, str(user_id), text))
+
+        return fake_send
+
+    monkeypatch.setattr("leadagent.channels.telegram.send", recorder("telegram"))
+    monkeypatch.setattr("leadagent.channels.whatsapp.send", recorder("whatsapp"))
+    return calls
