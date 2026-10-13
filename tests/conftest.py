@@ -21,3 +21,31 @@ os.environ["FERNET_KEY"] = Fernet.generate_key().decode()
 os.environ["WHATSAPP_APP_SECRET"] = "app-secret"
 os.environ["WHATSAPP_VERIFY_TOKEN"] = "verify-me"
 os.environ["LANGSMITH_TRACING"] = "false"
+
+
+import pytest
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _tables():
+    from leadagent.store.db import create_tables
+
+    create_tables()
+
+
+@pytest.fixture(autouse=True)
+def _clean(_tables):
+    from sqlalchemy import text
+
+    from leadagent.store.db import engine
+
+    with engine.begin() as conn:
+        conn.execute(text("TRUNCATE institutes, leads, messages RESTART IDENTITY CASCADE"))
+
+
+@pytest.fixture
+def session():
+    from leadagent.store.db import SessionLocal
+
+    with SessionLocal() as db:
+        yield db
