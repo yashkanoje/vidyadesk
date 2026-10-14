@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
@@ -10,9 +11,12 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 class Settings(BaseSettings):
     database_url: str  # postgresql://user:password@host:5432/dbname
-    anthropic_api_key: str
     fernet_key: str
+    llm_provider: Literal["anthropic", "gemini"] = "anthropic"
+    anthropic_api_key: str = ""
     llm_model: str = "claude-haiku-4-5-20251001"
+    google_api_key: str = ""
+    gemini_model: str = "gemini-3.5-flash-lite"
     whatsapp_app_secret: str = ""
     whatsapp_verify_token: str = ""
     whatsapp_api_version: str = "v24.0"

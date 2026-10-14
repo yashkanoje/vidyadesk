@@ -2,6 +2,7 @@
 
     python -m evals.run                               # every conversation on Claude
     python -m evals.run --only or-                    # only the Odia conversations
+    python -m evals.run --provider gemini             # every conversation on Gemini (free tier)
     python -m evals.run --provider sarvam --only or-  # the Odia conversations on Sarvam (needs SARVAM_API_KEY)
 """
 import argparse
@@ -15,7 +16,7 @@ import yaml
 from langchain_core.messages import HumanMessage
 
 from evals.checks import script_of, unknown_numbers
-from leadagent.agent.graph import build_graph, get_checkpointer, message_text, thread_config
+from leadagent.agent.graph import bound_model, build_graph, get_checkpointer, message_text, thread_config
 from leadagent.agent.tools import TOOLS
 from leadagent.cli import add_institute
 from leadagent.facts import load_facts_file, render_facts
@@ -41,13 +42,7 @@ def make_model(provider):
             timeout=60,
         )
         return model.bind_tools(TOOLS), False
-    from langchain_anthropic import ChatAnthropic
-
-    settings = get_settings()
-    model = ChatAnthropic(
-        model=settings.llm_model, api_key=settings.anthropic_api_key, max_tokens=500, timeout=30, max_retries=2
-    )
-    return model.bind_tools(TOOLS, parallel_tool_calls=False), True
+    return bound_model(provider)  # the same Claude or Gemini set-up the app uses
 
 
 def run_conversation(graph, institute_id, conversation):
@@ -92,7 +87,7 @@ def failures_for(conversation, replies, fields, facts_text):
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--provider", choices=["anthropic", "sarvam"], default="anthropic")
+    parser.add_argument("--provider", choices=["anthropic", "gemini", "sarvam"], default="anthropic")
     parser.add_argument("--only", default="", help="run only conversations whose id starts with this")
     args = parser.parse_args()
 

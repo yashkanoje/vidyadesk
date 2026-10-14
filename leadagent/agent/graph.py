@@ -2,6 +2,7 @@ import atexit
 from functools import lru_cache
 
 from langchain_anthropic import ChatAnthropic
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import AIMessage, SystemMessage, ToolMessage, trim_messages
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.postgres import PostgresSaver
@@ -173,8 +174,21 @@ def get_checkpointer() -> PostgresSaver:
     return saver
 
 
-def _chat(max_tokens) -> ChatAnthropic:
+def _chat(max_tokens, provider=None):
     settings = get_settings()
+    if (provider or settings.llm_provider) == "gemini":
+        # Gemini's free tier may use what is sent to improve Google's products: test conversations only,
+        # never real students' data.
+        return ChatGoogleGenerativeAI(
+            model=settings.gemini_model,
+            google_api_key=settings.google_api_key,
+            max_output_tokens=max_tokens,
+            # shortcut: "minimal" suits the Flash-Lite models (about 3 s a reply); gemini-3.8-flash rejects it,
+            # so make the level a setting if the model is changed
+            thinking_level="minimal",
+            timeout=60,
+            max_retries=2,
+        )
     return ChatAnthropic(
         model=settings.llm_model,
         api_key=settings.anthropic_api_key,
@@ -184,6 +198,14 @@ def _chat(max_tokens) -> ChatAnthropic:
     )
 
 
+def bound_model(provider=None):
+    """The agent's chat model bound to its tools, and whether to send the system prompt as a cached block."""
+    model = _chat(500, provider)
+    if (provider or get_settings().llm_provider) == "gemini":
+        return model.bind_tools(TOOLS), False  # the cached-block format is Anthropic's
+    return model.bind_tools(TOOLS, parallel_tool_calls=False), True
+
+
 @lru_cache
 def get_plain_model():
     return _chat(200)
@@ -191,4 +213,5 @@ def get_plain_model():
 
 @lru_cache
 def get_graph():
-    return build_graph(_chat(500).bind_tools(TOOLS, parallel_tool_calls=False), get_checkpointer())
+    model, cache_prompt = bound_model()
+    return build_graph(model, get_checkpointer(), cache_prompt=cache_prompt)

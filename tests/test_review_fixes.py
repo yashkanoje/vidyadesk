@@ -180,7 +180,9 @@ def test_the_real_claude_binding_builds_and_asks_for_one_tool_call_at_a_time(mon
     from leadagent.agent import graph as graph_module
 
     captured = {}
-    monkeypatch.setattr(graph_module, "build_graph", lambda model, checkpointer: captured.setdefault("model", model))
+    monkeypatch.setattr(
+        graph_module, "build_graph", lambda model, checkpointer, **kwargs: captured.update(model=model, **kwargs)
+    )
     graph_module.get_graph.cache_clear()
     try:
         graph_module.get_graph()
@@ -188,6 +190,7 @@ def test_the_real_claude_binding_builds_and_asks_for_one_tool_call_at_a_time(mon
         graph_module.get_graph.cache_clear()
     assert captured["model"].kwargs["tool_choice"] == {"type": "auto", "disable_parallel_tool_use": True}
     assert {tool["name"] for tool in captured["model"].kwargs["tools"]} == {"save_lead", "set_interest", "handoff"}
+    assert captured["cache_prompt"] is True
 
 
 def test_the_eval_runner_binds_claude_the_same_way():

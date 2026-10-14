@@ -17,6 +17,8 @@ if not _db_name.endswith("_test"):
 # Set before any leadagent module is imported, so tests never touch the real database or API.
 os.environ["DATABASE_URL"] = TEST_DB
 os.environ["ANTHROPIC_API_KEY"] = "test-key"
+os.environ["LLM_PROVIDER"] = "anthropic"
+os.environ["GOOGLE_API_KEY"] = "test-key"
 os.environ["FERNET_KEY"] = Fernet.generate_key().decode()
 os.environ["WHATSAPP_APP_SECRET"] = "app-secret"
 os.environ["WHATSAPP_VERIFY_TOKEN"] = "verify-me"
