@@ -19,6 +19,8 @@ if a label below does not match, look for the nearest equivalent.
    and paste the first bot's token when asked.
 2. Repeat with `--slug vidya --name "Vidya Commerce Academy" --facts examples/vidya.yaml` and the second bot's token.
 3. For each: `.\.venv\Scripts\python -m leadagent.cli set-webhook --slug <slug>`. Repeat this whenever the tunnel address changes.
+   If it says "Failed to resolve host", the free tunnel has dropped or its address is not live yet: wait a minute
+   and retry, or restart the tunnel (it gets a new address), update `PUBLIC_BASE_URL`, and run this again.
 4. From the owner's Telegram account, send `/whoami` to each bot, then
    `.\.venv\Scripts\python -m leadagent.cli set-owner --slug <slug> --chat-id <the number it replied with>`.
 

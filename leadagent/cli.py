@@ -165,7 +165,13 @@ def main(argv=None) -> int:
         return 1
     except httpx.HTTPError as exc:
         # Print the error type only: the exception text holds the request URL, which contains the bot token.
-        print(f"Error: Telegram refused the request ({type(exc).__name__}). Check the bot token.", file=sys.stderr)
+        reason = "Check the bot token."
+        if isinstance(exc, httpx.HTTPStatusError):
+            try:  # Telegram's own explanation, such as a tunnel address it cannot resolve; it never holds the token
+                reason = exc.response.json().get("description") or reason
+            except ValueError:
+                pass
+        print(f"Error: Telegram refused the request ({type(exc).__name__}). {reason}", file=sys.stderr)
         return 1
     return 0
 
