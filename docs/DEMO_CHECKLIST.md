@@ -7,9 +7,11 @@ if a label below does not match, look for the nearest equivalent.
 
 1. Start a tunnel: `cloudflared tunnel --url http://localhost:8000`. Copy the `https://…trycloudflare.com` address.
 2. Put that address in `.env` as `PUBLIC_BASE_URL`. It changes every time the tunnel restarts.
-3. Start the app as one process, without `--reload`:
+3. Check which model answers: `LLM_PROVIDER` in `.env` is `gemini` (free; test data only, never a real student's
+   details) or `anthropic` (needs API credits). Restart the app after changing it.
+4. Start the app as one process, without `--reload`:
    `.\.venv\Scripts\python -m uvicorn leadagent.app:app --port 8000`
-4. Open `<PUBLIC_BASE_URL>/health`. It shows `{"ok":true}`.
+5. Open `<PUBLIC_BASE_URL>/health`. It shows `{"ok":true}`.
 
 ## Add the two sample institutes (first time only)
 
