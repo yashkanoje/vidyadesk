@@ -1,4 +1,5 @@
 import atexit
+from datetime import timedelta
 from functools import lru_cache
 
 from langchain_anthropic import ChatAnthropic
@@ -25,6 +26,9 @@ HISTORY = 20  # messages sent to the model
 # shortcut: canned replies are English only, translate per user language when an institute asks
 NONTEXT_REPLY = "Please type your question as a text message."
 LIMIT_REPLY = "Thank you for your messages. Our team will contact you soon."
+# While a chat waits for the team, the student hears this at most once per window, so the bot never seems dead.
+WAITING_REPLY = "Our team has your message and will reply soon."
+WAITING_REPLY_EVERY = timedelta(hours=6)
 
 
 class State(MessagesState):
@@ -100,6 +104,8 @@ def relay(state: State, config: RunnableConfig) -> dict:
                 institute,
                 f"💬 Lead #{lead.id} ({lead.name or 'no name'}) wrote:\n{message_text(state['messages'][-1])}",
             )
+            if not repo.sent_since(session, lead.id, WAITING_REPLY, utcnow() - WAITING_REPLY_EVERY):
+                return {"reply": WAITING_REPLY}
     return {}
 
 

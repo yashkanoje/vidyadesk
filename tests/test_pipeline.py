@@ -1,8 +1,17 @@
+from datetime import timedelta
+
 from langchain_core.messages import AIMessage
 from sqlalchemy import func, select
 
 from helpers import ScriptedModel, make_institute, make_lead, tool_call
-from leadagent.agent.graph import NONTEXT_REPLY, build_graph, get_checkpointer, thread_config
+from leadagent.agent.graph import (
+    NONTEXT_REPLY,
+    WAITING_REPLY,
+    WAITING_REPLY_EVERY,
+    build_graph,
+    get_checkpointer,
+    thread_config,
+)
 from leadagent.channels.base import IncomingMsg
 from leadagent.commands import HELP
 from leadagent.pipeline import FALLBACK, MAX_CHARS, process
@@ -115,13 +124,29 @@ def test_messages_to_an_inactive_institute_are_dropped(session, sent):
     assert sent == [] and count(session, Lead) == 0
 
 
-def test_handed_off_lead_gets_no_reply(session, sent):
+def test_a_handed_off_lead_is_acknowledged_once_then_only_relayed(session, sent):
     institute = make_institute(session)
     graph, _ = graph_with(tool_call("handoff", reason="asked for a person"), AIMessage("Our team will contact you."))
     process(tg(institute, "talk to sir", msg_id="tg:1"), graph=graph)
     sent.clear()
     process(tg(institute, "hello?", msg_id="tg:2"), graph=graph)
-    assert [s[2] for s in sent] == ["999"]  # only the relay to the owner
+    assert [(s[2], s[3]) for s in sent][1:] == [("555", WAITING_REPLY)]
+    assert sent[0][2] == "999"  # forwarded to the owner first
+    sent.clear()
+    process(tg(institute, "anyone?", msg_id="tg:3"), graph=graph)
+    assert [s[2] for s in sent] == ["999"]  # acknowledged already: only the relay
+
+
+def test_the_waiting_reply_is_repeated_after_the_waiting_window(session, sent):
+    institute = make_institute(session)
+    lead = make_lead(session, institute, "555", stage="handed_off")
+    repo.log_message(session, lead, "assistant", WAITING_REPLY)
+    session.commit()
+    old = session.scalars(select(Message).where(Message.role == "assistant")).one()
+    old.created_at = old.created_at - WAITING_REPLY_EVERY - timedelta(minutes=1)
+    session.commit()
+    process(tg(institute, "still there?", msg_id="tg:4"), graph=graph_with()[0])
+    assert ("555", WAITING_REPLY) in [(s[2], s[3]) for s in sent]
 
 
 # Owner commands

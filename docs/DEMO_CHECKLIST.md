@@ -30,7 +30,9 @@ if a label below does not match, look for the nearest equivalent.
 - [ ] The same question to the other bot gets that institute's fee, not BrightPath's.
 - [ ] Giving a name, class and course: the owner's daily summary later lists the lead.
 - [ ] "I want to take admission this week": the owner gets a hot-lead alert within seconds.
-- [ ] "I want to talk to a person": the owner gets a handoff alert, and the bot then stays silent.
+- [ ] "I want to talk to a person": the owner gets a handoff alert. The student's next message gets "Our team has your
+  message and will reply soon." once; later messages only reach the owner. Owner commands (`/resume 98`) work only
+  from the owner's own account, with the real lead number from the alert.
 - [ ] The owner sends `/resume <id>`: the bot answers the student again.
 - [ ] A photo or voice note gets "Please type your question as a text message."
 - [ ] One message each in Hindi, Hinglish, Odia, and Odia in Latin letters gets a reply in the same language.

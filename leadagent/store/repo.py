@@ -111,6 +111,23 @@ def recent_messages(session, lead_id, limit):
     return list(reversed(rows))
 
 
+def sent_since(session, lead_id, text, since) -> bool:
+    """Whether this exact assistant message was sent to the lead after `since`."""
+    return (
+        session.scalar(
+            select(Message.id)
+            .where(
+                Message.lead_id == lead_id,
+                Message.role == "assistant",
+                Message.text == text,
+                Message.created_at > since,
+            )
+            .limit(1)
+        )
+        is not None
+    )
+
+
 def _has_core_details(lead) -> bool:
     return bool(lead.name and lead.student_class and lead.course)
 

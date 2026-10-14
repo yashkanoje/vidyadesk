@@ -128,7 +128,7 @@ START → gate ──(lead is handed off)──► relay_to_owner → END
 | `gate` | Plain code, no model call. Loads or creates the lead, applies the limits below, checks whether a human has taken over. |
 | `agent` | Claude Haiku 4.5. Replies in the user's language and decides when to call a tool. |
 | `tools` | Runs the tool calls and returns results to `agent`. |
-| `relay_to_owner` | The bot stays silent and forwards the user's message to the owner. |
+| `relay_to_owner` | Forwards the user's message to the owner. The bot does not answer it, except for "Our team has your message and will reply soon." at most once every 6 hours, so the student never meets total silence (added 14 Oct 2026 after the first live demo). |
 
 **Tools**
 
