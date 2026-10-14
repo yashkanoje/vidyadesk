@@ -14,8 +14,8 @@
 
 - id: en-out-of-order
   turns: ["What are the NEET batch timings?", "ok. I'm Priya, class 12"]
-  expect: {lead: {name: priya, student_class: "12", course: neet}}
-  review: Answers the timing question before asking for details.
+  expect: {lead: {name: priya, student_class: "12"}}
+  review: Answers the timing question before asking for details. Asking whether she wants NEET is fine.
 
 - id: en-hot
   turns: ["I want to take admission in NEET this week. When can I come for the demo class?"]

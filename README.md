@@ -19,6 +19,7 @@ against real Claude (`python -m evals.run`) and the demo checklist. M2 (RAG) and
 1. Install PostgreSQL and create the `leadagent` and `leadagent_test` databases.
 2. `python -m venv .venv` then `.\.venv\Scripts\python -m pip install -e ".[dev]"`
 3. Copy `.env.example` to `.env` and fill it in.
+   `LLM_PROVIDER=gemini` uses Google's free tier (test data only, never real students); `anthropic` uses Claude.
 4. `.\.venv\Scripts\python -m pytest -q`
 
 ## Run

@@ -2,12 +2,13 @@
 
     python -m evals.run                               # every conversation on Claude
     python -m evals.run --only or-                    # only the Odia conversations
-    python -m evals.run --provider gemini             # every conversation on Gemini (free tier)
+    python -m evals.run --provider gemini --pause 12  # every conversation on Gemini, paced for its free tier
     python -m evals.run --provider sarvam --only or-  # the Odia conversations on Sarvam (needs SARVAM_API_KEY)
 """
 import argparse
 import os
 import sys
+import time
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -45,7 +46,7 @@ def make_model(provider):
     return bound_model(provider)  # the same Claude or Gemini set-up the app uses
 
 
-def run_conversation(graph, institute_id, conversation):
+def run_conversation(graph, institute_id, conversation, pause=0.0):
     """Play the user's turns. Return (replies, the lead's final fields as a dict)."""
     with session_scope() as session:
         lead_id = repo.get_or_create_lead(session, institute_id, "telegram", f"eval-{conversation['id']}").id
@@ -59,6 +60,7 @@ def run_conversation(graph, institute_id, conversation):
             {"messages": [HumanMessage(turn)], "kind": "text"}, thread_config(institute_id, lead_id)
         )
         replies.append(message_text(result["messages"][-1]) if result["route"] == "agent" else f"[{result['route']}]")
+        time.sleep(pause)  # keeps a free tier under its requests-per-minute limit
     with session_scope() as session:
         lead = repo.get_lead(session, institute_id, lead_id)
         fields = {key: getattr(lead, key) for key in ("name", "student_class", "course", "phone", "stage", "interest")}
@@ -89,6 +91,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--provider", choices=["anthropic", "gemini", "sarvam"], default="anthropic")
     parser.add_argument("--only", default="", help="run only conversations whose id starts with this")
+    parser.add_argument("--pause", type=float, default=0.0, help="seconds to wait after each turn (Gemini free tier: 12)")
     args = parser.parse_args()
 
     conversations = [
@@ -109,7 +112,7 @@ def main() -> int:
     try:
         for conversation in conversations:
             try:
-                replies, fields = run_conversation(graph, institute_id, conversation)
+                replies, fields = run_conversation(graph, institute_id, conversation, args.pause)
                 failed = failures_for(conversation, replies, fields, facts_text)
             except Exception as exc:
                 replies, fields, failed = [], {}, [f"crashed: {type(exc).__name__}: {exc}"]

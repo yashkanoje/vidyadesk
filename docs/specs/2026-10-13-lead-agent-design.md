@@ -50,7 +50,7 @@ up.
 | Channels | Telegram and WhatsApp behind one common message format | Telegram is free and unlimited for building; institutes use WhatsApp |
 | Languages | Mirror the user's language | Odia- and Hindi-speaking parents are a large share of enquiries |
 | Framework | LangGraph | Chat state per user, widely asked for in AI-engineer roles |
-| Model | Claude Haiku 4.5 (`claude-haiku-4-5-20251001`) through `langchain-anthropic`, with prompt caching | Low cost per lead |
+| Model | `LLM_PROVIDER` chooses: Claude Haiku 4.5 (`claude-haiku-4-5-20251001`, with prompt caching) or Gemini 3.5 Flash-Lite (`gemini-3.5-flash-lite`, minimal thinking). Gemini's free tier is for development and test data only | Claude: low cost per lead. Gemini: free while building (added 14 Oct 2026 because the Anthropic account had no API credits) |
 | Database | PostgreSQL with the pgvector extension | One database for leads, chat state and vectors |
 | Exact facts | Structured facts in the prompt, not RAG | Fees and timings must be exact |
 | Long documents | RAG | Brochures and prospectuses are too long for the prompt |
@@ -470,11 +470,12 @@ These were assumed during design. Each is checked at the point shown.
 
 | Assumption | Check by |
 |---|---|
-| Claude Haiku 4.5 writes natural Odia, including Odia in Latin script | M1 behaviour checks, read by a native speaker |
+| Claude Haiku 4.5 writes natural Odia, including Odia in Latin script. **Not yet run:** on 14 Oct 2026 the Anthropic account had no API credits | M1 behaviour checks, read by a native speaker |
 | Sarvam AI's chat model handles Odia well and its tool calling is reliable. Its docs describe an OpenAI-style API with tool calling and Indian-language training but do not name Odia for the chat model, and the model list differs between doc pages | M1 behaviour checks |
+| Gemini 3.5 Flash-Lite (free tier) behaviour, measured 14 Oct 2026 with the 22 scripted conversations: 21 of 22 automatic checks passed after two prompt fixes. All four manipulation attempts were refused, every handoff case handed off, no reply contained a number outside the facts. Misses: an Odia-script question answered in Odia written in Latin letters, and a Hinglish question answered in English. Odia wording not yet read by a native speaker. Replies take about 3 s; `gemini-3.8-flash` was overloaded on the free tier and `gemini-2.5-flash` is closed to new users | Re-run `python -m evals.run --provider gemini --pause 12` after any prompt change |
 | Meta's WhatsApp test number: free, no business verification, up to 5 recipient numbers | M1 plan |
 | Replies within 24 hours of the user's last WhatsApp message are free. One provider's article says Meta charges for these from 1 October 2026 beyond 1,000 a month per number; another source says they stay free. Not resolved | Meta's own pricing page, before the first WhatsApp client |
-| Cost of roughly ₹1–4 per lead. Prompt caching only applies above a minimum prompt length; a short facts block may not be cached, which puts the cost at the upper end | M1, from measured token use |
+| Cost of roughly ₹1–4 per lead on Claude. Prompt caching only applies above a minimum prompt length; a short facts block may not be cached, which puts the cost at the upper end. Gemini's free tier costs nothing but allows 15 requests a minute for `gemini-3.5-flash-lite` (measured 14 Oct 2026), enough for tests and a demo, not for an institute | Measured token use on a paid model |
 | fastembed provides `BAAI/bge-small-en-v1.5` at 384 dimensions | M2 plan |
 | pgvector can be installed on the local Windows PostgreSQL, or a hosted PostgreSQL with pgvector is used for development | M2 plan |
 | Oracle Cloud Always Free signup works with an Indian card | Before the first demo. Fallback: run demos from the PC through the tunnel |
