@@ -4,6 +4,7 @@ from helpers import ScriptedModel, make_institute, make_lead, run_turn, tool_cal
 from leadagent.agent.graph import (
     LIMIT,
     NONTEXT_REPLY,
+    WAITING_REPLY,
     build_graph,
     drop_dangling_tool_calls,
     get_checkpointer,
@@ -59,13 +60,13 @@ def test_conversation_state_survives_between_turns(session):
     assert [m.content for m in model.calls[1][1:]] == ["hi", "Hello!", "class 11"]
 
 
-def test_after_handoff_the_bot_is_silent_and_relays_to_the_owner(session, sent):
+def test_after_handoff_the_bot_acknowledges_and_relays_to_the_owner(session, sent):
     lead = make_lead(session, make_institute(session), stage="collecting", name="Rahul")
     graph, model = graph_with(tool_call("handoff", reason="asked for a person"), AIMessage("Our team will contact you."))
     run_turn(graph, lead, "I want to talk to sir")
     sent.clear()
     result = run_turn(graph, lead, "hello? anyone?")
-    assert (result["route"], result["reply"]) == ("relay", "")
+    assert (result["route"], result["reply"]) == ("relay", WAITING_REPLY)
     assert len(model.calls) == 2  # the model was not called for the second message
     assert sent == [("telegram", lead.institute_id, "999", f"💬 Lead #{lead.id} (Rahul) wrote:\nhello? anyone?")]
 
