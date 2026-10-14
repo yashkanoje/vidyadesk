@@ -50,7 +50,7 @@ up.
 | Channels | Telegram and WhatsApp behind one common message format | Telegram is free and unlimited for building; institutes use WhatsApp |
 | Languages | Mirror the user's language | Odia- and Hindi-speaking parents are a large share of enquiries |
 | Framework | LangGraph | Chat state per user, widely asked for in AI-engineer roles |
-| Model | Claude Haiku 4.5 (`claude-haiku-4-5-20251001`) through `langchain-anthropic`, with prompt caching | Low cost per lead |
+| Model | `LLM_PROVIDER` chooses: Claude Haiku 4.5 (`claude-haiku-4-5-20251001`, with prompt caching) or Gemini 3.5 Flash-Lite (`gemini-3.5-flash-lite`, minimal thinking). Gemini's free tier is for development and test data only | Claude: low cost per lead. Gemini: free while building (added 14 Oct 2026 because the Anthropic account had no API credits) |
 | Database | PostgreSQL with the pgvector extension | One database for leads, chat state and vectors |
 | Exact facts | Structured facts in the prompt, not RAG | Fees and timings must be exact |
 | Long documents | RAG | Brochures and prospectuses are too long for the prompt |
@@ -332,7 +332,7 @@ last 24 hours, hot leads to call, and handed-off leads still waiting.
 
 | Stage | Setup |
 |---|---|
-| Development | The app on the PC, with a cloudflared tunnel for webhooks. The development machine has neither Docker nor PostgreSQL installed, so the database choice (a hosted free PostgreSQL with pgvector, or a local install) is made in the M1 plan. |
+| Development | The app on the PC, with a cloudflared tunnel for webhooks. PostgreSQL is installed locally from the Windows installer. pgvector for M2 is decided in the M2 plan. |
 | Demo and first clients | One Oracle Cloud Always Free VM (Ubuntu) running the app as a systemd service, PostgreSQL with pgvector on the same VM, and Caddy with a free DuckDNS name for HTTPS |
 | Backup | Nightly `pg_dump`, 7 days kept |
 | CI | One GitHub Actions workflow runs the unit tests on every push, against a PostgreSQL service |
@@ -427,6 +427,43 @@ build: any shortcut taken is added here. It is the refinement backlog once M3 is
 | Operations | Dedicated vector database | Millions of chunks | pgvector is enough well beyond this scale |
 | Operations | Load testing, automated end-to-end tests on live WhatsApp | Before a large client | |
 | Operations | Token rotation, encryption-key rotation | Before paying clients | |
+| Data | Alembic migrations (M1 uses `create_all`, which cannot change an existing table) | Before the first column change on a database with real data | Do this at the start of M2 |
+| Agent | Canned replies ("please type", the limit notice, the failure fallback) in the user's language (M1 sends English) | An institute's users mostly write Hindi or Odia | Small: pick by the script of the user's last message |
+| Agent | Batching messages relayed to the owner after a handoff (M1 forwards each one) | An owner reports too many alerts | |
+| Agent | Owner testing the bot as a student from the same Telegram account (M1 treats the owner's chat as owner-only) | Owners ask during onboarding | A `/test` mode for the owner chat |
+| Operations | Async code (M1 is synchronous, using threads) | Many simultaneous chats on a Linux server | psycopg's async mode does not run on the default Windows event loop, so this also needs a Linux development setup |
+| Operations | Cleaning up per-lead locks (M1 keeps one small lock object per lead for the life of the process) | Hundreds of thousands of leads in one process | Replaced anyway by the database lock needed for more than one process |
+
+### From the M1 code review (14 October 2026)
+
+An independent review of the whole M1 branch found no critical issues and ten important ones. The ten are
+fixed, each with a test (`tests/test_review_fixes.py`). The smaller findings below are **not fixed**.
+
+| Area | Not fixed | Fix it when | Recommendation |
+|---|---|---|---|
+| Agent | Every incoming message uses up a lead ID, so the IDs owners see in alerts jump (1, 6, 40) | Owners find the IDs awkward to type | Look the lead up first and insert only when it is missing |
+| Agent | A phone number the user gives replaces the WhatsApp sender's own number in alerts | An owner calls a wrong number | Show both |
+| Agent | Text the user influences goes into owner alerts with its line breaks, so a user can fake alert lines such as "Send /delete 7" | Before paying clients | Flatten line breaks in user-influenced text |
+| Agent | A reply is logged as sent even when delivery failed | With the dashboard (M3) | Mark it undelivered |
+| Agent | Three quick messages get three separate replies | Users complain | Wait a few seconds and answer them together |
+| Agent | The limit notice can be skipped when two messages are logged at the same instant | Seen in practice | Store a "limit notified at" time on the lead |
+| Channels | A signed webhook body that is not JSON gets a 400, which Telegram and Meta retry | Seen in the logs | Answer 200 and log it |
+| Channels | Errors that will not go away (400, 401, 403) are retried, and Telegram's "retry after" on a 429 is ignored | Rate limits are hit | Retry only network errors, 429 and 5xx |
+| Channels | One malformed WhatsApp message drops the others in the same webhook; a WhatsApp reaction gets "Please type…" | Before the first WhatsApp client | Skip the bad message; ignore reactions |
+| Channels | The Telegram route reads the whole body before checking the secret, with no size limit | Server deployment | Limit body size at the proxy |
+| Jobs | The summary's waiting list is oldest first and capped at 10, and only `/resume` or `/delete` clears it | An owner has more than 10 waiting | Newest first, and add `/close` |
+| Jobs | A restart between 08:00 and 08:30 can skip that day's summary; a summary whose delivery failed still counts as sent | Server deployment | Store the date of the last summary |
+| Data | Two message queries filter by lead only, not by institute (safe today, since lead IDs are unique) | M3 | Add the institute filter |
+| Operations | Saved chat state is never pruned | Storage growth is noticed | Delete old checkpoints |
+| Operations | The graph is built on the first message, not at start-up, so a broken setup loses that first message | Server deployment | Build it at start-up |
+| Operations | The web server's access log prints the WhatsApp verify token; a missing-setting error can print part of another setting | Server deployment | Keep the handshake out of the access log |
+| Operations | A crash in the middle of a reply loses that reply (the user's message is kept) | More than one process | Needs a job queue |
+| Operations | No spending cap per institute; many accounts could run up the model bill | Before paying clients | Daily budget per institute |
+| Operations | LangSmith tracing, when switched on, sends conversations to a third party | Before switching it on for a client | Tell the institute, or keep it off |
+| Docs | The README has no command for generating `FERNET_KEY` | Next documentation pass | Copy it from the M1 plan |
+| Command line | A mistyped facts path gives a traceback; an empty Telegram token is accepted | Next time the command line is touched | Catch both |
+| Operations | Printing the settings object (for example in an error) shows the database password and API keys | Before server deployment | Store secrets as pydantic `SecretStr` |
+| Tests | Weak spots: one delivery test never calls `deliver`; one isolation test would pass if the tool always failed; no tests at the exact 2 h, 20 h, 09:00 and 21:00 edges; no test that tokens stay out of logs; `cli.main()` and app start-up are untested | Before M2 | |
 
 ## 16. Not yet verified
 
@@ -434,12 +471,13 @@ These were assumed during design. Each is checked at the point shown.
 
 | Assumption | Check by |
 |---|---|
-| Claude Haiku 4.5 writes natural Odia, including Odia in Latin script | M1 behaviour checks, read by a native speaker |
+| Claude Haiku 4.5 writes natural Odia, including Odia in Latin script. **Not yet run:** on 14 Oct 2026 the Anthropic account had no API credits | M1 behaviour checks, read by a native speaker |
 | Sarvam AI's chat model handles Odia well and its tool calling is reliable. Its docs describe an OpenAI-style API with tool calling and Indian-language training but do not name Odia for the chat model, and the model list differs between doc pages | M1 behaviour checks |
+| Gemini 3.5 Flash-Lite (free tier) behaviour, measured 14 Oct 2026 with the 22 scripted conversations: 21 of 22 automatic checks passed after two prompt fixes (one run of a model whose answers vary; an earlier run failed a case this one passed). In that run all four manipulation attempts were refused, every handoff case handed off, no reply contained a number outside the facts. Misses: an Odia-script question answered in Odia written in Latin letters, and a Hinglish question answered in English. Odia wording not yet read by a native speaker. Replies take about 3 s; `gemini-3.8-flash` was overloaded on the free tier and `gemini-2.5-flash` is closed to new users | Re-run `python -m evals.run --provider gemini --pause 12` after any prompt change |
 | Meta's WhatsApp test number: free, no business verification, up to 5 recipient numbers | M1 plan |
-| Replies within 24 hours of the user's last WhatsApp message are free | M1 plan |
-| Cost of roughly ₹1–4 per lead. Prompt caching only applies above a minimum prompt length; a short facts block may not be cached, which puts the cost at the upper end | M1, from measured token use |
+| Replies within 24 hours of the user's last WhatsApp message are free. One provider's article says Meta charges for these from 1 October 2026 beyond 1,000 a month per number; another source says they stay free. Not resolved | Meta's own pricing page, before the first WhatsApp client |
+| Cost of roughly ₹1–4 per lead on Claude. Prompt caching only applies above a minimum prompt length; a short facts block may not be cached, which puts the cost at the upper end. Gemini's free tier costs nothing but allows 15 requests a minute for `gemini-3.5-flash-lite` (measured 14 Oct 2026), enough for tests and a demo, not for an institute | Measured token use on a paid model |
 | fastembed provides `BAAI/bge-small-en-v1.5` at 384 dimensions | M2 plan |
-| A free hosted PostgreSQL with pgvector is available for development | M1 plan |
+| pgvector can be installed on the local Windows PostgreSQL, or a hosted PostgreSQL with pgvector is used for development | M2 plan |
 | Oracle Cloud Always Free signup works with an Indian card | Before the first demo. Fallback: run demos from the PC through the tunnel |
 | What India's Digital Personal Data Protection Act requires for minors' data and consent | Before the first paying client |

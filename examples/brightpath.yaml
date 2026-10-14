@@ -1,0 +1,29 @@
+institute_name: BrightPath Classes
+address: Plot 12, Civil Township, Rourkela, Odisha 769004
+phone: "0661-2400000"
+timings: Monday to Saturday, 9 am to 8 pm
+courses:
+  - name: JEE Foundation
+    for_classes: Class 9 and 10
+    fee: "₹32,000 per year"
+    batches:
+      - Mon, Wed, Fri 5 pm to 7 pm
+      - Tue, Thu, Sat 5 pm to 7 pm
+  - name: JEE Main + Advanced
+    for_classes: Class 11 and 12
+    fee: "₹68,000 per year"
+    batches:
+      - Mon to Sat 6 am to 8 am
+      - Mon to Sat 5 pm to 7:30 pm
+  - name: NEET
+    for_classes: Class 11 and 12
+    fee: "₹62,000 per year"
+    batches:
+      - Mon to Sat 4 pm to 6:30 pm
+faq:
+  - q: Is there a demo class?
+    a: Yes, the first two classes are free for every new student.
+  - q: Can the fee be paid in instalments?
+    a: Yes, in two equal instalments, one at admission and one after three months.
+  - q: Do you provide study material?
+    a: Yes, printed study material is included in the fee.
