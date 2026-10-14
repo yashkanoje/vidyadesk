@@ -74,3 +74,27 @@ def test_set_owner_and_unknown_slug(session):
     with pytest.raises(ValueError, match="No institute"):
         set_owner(session, "nobody", "1")
     assert session.scalar(select(func.count()).select_from(Institute)) == 1
+
+
+def test_set_webhook_shows_telegrams_reason(session, monkeypatch, capsys):
+    import httpx
+
+    from leadagent.cli import main
+    from leadagent.settings import get_settings
+
+    add(session)
+    session.commit()
+    monkeypatch.setattr(get_settings(), "public_base_url", "https://example.trycloudflare.com")
+
+    def refused(institute, base_url, client=None):
+        request = httpx.Request("POST", "https://api.telegram.org/botSECRET/setWebhook")
+        response = httpx.Response(
+            400, json={"ok": False, "description": "Bad Request: bad webhook: Failed to resolve host"}, request=request
+        )
+        raise httpx.HTTPStatusError("400", request=request, response=response)
+
+    monkeypatch.setattr("leadagent.cli.telegram.set_webhook", refused)
+    assert main(["set-webhook", "--slug", "bright"]) == 1
+    err = capsys.readouterr().err
+    assert "Failed to resolve host" in err
+    assert "SECRET" not in err
