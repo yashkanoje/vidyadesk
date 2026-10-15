@@ -32,3 +32,20 @@ def script_of(text) -> str:
         if counts[script] >= 5:
             return script
     return max(counts, key=counts.get)
+
+
+def passage_hit(passages, phrase) -> bool:
+    return any(phrase.lower() in passage.lower() for passage in passages)
+
+
+def suggest_floor(answerable, unanswerable) -> float:
+    """The similarity floor that sorts the most questions correctly into "answer" and "hand off".
+
+    Each observed score is tried as the floor; ties go to the lower floor.
+    """
+    best, best_correct = 0.0, -1
+    for floor in sorted(set(answerable) | set(unanswerable)):
+        correct = sum(score >= floor for score in answerable) + sum(score < floor for score in unanswerable)
+        if correct > best_correct:
+            best, best_correct = floor, correct
+    return round(best, 3)

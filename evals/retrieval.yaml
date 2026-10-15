@@ -1,0 +1,28 @@
+# Each question either names a phrase that must appear in one of the top 3 passages, or has `expect: null`
+# because the prospectus does not answer it (those set the similarity floor).
+- {question: "Is there a scholarship test?", expect: "Talent Search Exam"}
+- {question: "When is the scholarship exam held?", expect: "second Sunday"}
+- {question: "How much does it cost to register for the scholarship exam?", expect: "registration fee for the exam"}
+- {question: "How much fee waiver do the toppers get?", expect: "50 percent on the course fee"}
+- {question: "Will we get the money back if my son leaves after two weeks?", expect: "within 30 days"}
+- {question: "What is the refund policy?", expect: "full refund"}
+- {question: "How long does a refund take?", expect: "15 working days"}
+- {question: "Do you have a bus from Sector 19?", expect: "Sector 19"}
+- {question: "What is the bus fee per month?", expect: "1,200 rupees per month"}
+- {question: "Are there weekly tests?", expect: "chapter test every Sunday"}
+- {question: "Do you conduct all India mock tests?", expect: "all-India mock test"}
+- {question: "Is study material included in the fee?", expect: "Printed study material"}
+- {question: "When are the doubt clearing classes?", expect: "Saturday from 3 pm"}
+- {question: "What is the minimum attendance required?", expect: "85 percent"}
+- {question: "When is the parent teacher meeting?", expect: "first Saturday"}
+- {question: "How many students cleared JEE Advanced last year?", expect: "42 BrightPath students"}
+- {question: "What were your NEET results?", expect: "118 students"}
+- {question: "Who teaches physics?", expect: "Mohanty"}
+- {question: "Which documents are needed for admission?", expect: "Aadhaar"}
+- {question: "How many students are there in one class?", expect: "40 students"}
+- {question: "Is the institute open during Durga Puja?", expect: "Durga Puja"}
+- {question: "Do you have a hostel for outstation students?", expect: null}
+- {question: "Is there a canteen at the institute?", expect: null}
+- {question: "Do you offer UPSC coaching?", expect: null}
+- {question: "Is there a swimming pool?", expect: null}
+- {question: "What are the library hours?", expect: null}

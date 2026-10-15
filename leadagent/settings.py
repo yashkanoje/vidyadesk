@@ -17,9 +17,11 @@ class Settings(BaseSettings):
     llm_model: str = "claude-haiku-4-5-20251001"
     google_api_key: str = ""
     gemini_model: str = "gemini-3.5-flash-lite"
-    # Passages less similar than this to the question are not shown to the agent. Set from the retrieval
-    # test set (python -m evals.retrieval); 0.0 until it has been measured.
-    rag_min_similarity: float = 0.0
+    # Passages less similar than this to the question are not shown to the agent. Measured on 15 Oct 2026 with
+    # python -m evals.retrieval: 21/21 hits; answerable questions scored at least 0.585, unanswerable at most 0.599.
+    # The groups overlap slightly, so the floor cannot separate them fully: the agent's prompt decides whether a
+    # passage actually answers the question.
+    rag_min_similarity: float = 0.585
     whatsapp_app_secret: str = ""
     whatsapp_verify_token: str = ""
     whatsapp_api_version: str = "v24.0"
