@@ -87,3 +87,10 @@ def test_describe_shows_what_is_known(session):
     empty = make_lead(session, institute, "2")
     assert notify.describe(full) == "Rahul · Class 11 · JEE · 98610"
     assert notify.describe(empty) == "Name not given · Class ? · Course ? · telegram user 2"
+
+
+def test_describe_does_not_repeat_the_word_class(session):
+    # The model often saves "Class 11"; the 15 Oct 2026 summary showed "Class Class 11".
+    institute = make_institute(session)
+    lead = make_lead(session, institute, "1", name="Rahul", student_class="Class 11", course="JEE")
+    assert notify.describe(lead).startswith("Rahul · Class 11 · JEE")

@@ -7,8 +7,11 @@ log = logging.getLogger(__name__)
 
 def describe(lead) -> str:
     contact = lead.phone or f"{lead.channel} user {lead.channel_user_id}"
+    student_class = lead.student_class or "?"
+    if not student_class.lower().startswith("class"):  # the model often saves "Class 11" itself
+        student_class = f"Class {student_class}"
     return (
-        f"{lead.name or 'Name not given'} · Class {lead.student_class or '?'} · "
+        f"{lead.name or 'Name not given'} · {student_class} · "
         f"{lead.course or 'Course ?'} · {contact}"
     )
 
