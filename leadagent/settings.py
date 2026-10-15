@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     llm_model: str = "claude-haiku-4-5-20251001"
     google_api_key: str = ""
     gemini_model: str = "gemini-3.5-flash-lite"
+    # Passages less similar than this to the question are not shown to the agent. Set from the retrieval
+    # test set (python -m evals.retrieval); 0.0 until it has been measured.
+    rag_min_similarity: float = 0.0
     whatsapp_app_secret: str = ""
     whatsapp_verify_token: str = ""
     whatsapp_api_version: str = "v24.0"
