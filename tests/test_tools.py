@@ -1,6 +1,7 @@
-from helpers import make_institute, make_lead
+from helpers import add_document_with_chunks, make_institute, make_lead
 from leadagent import notify
-from leadagent.agent.tools import TOOLS, handoff, save_lead, set_interest
+from leadagent.agent.prompts import system_prompt
+from leadagent.agent.tools import NOTHING_FOUND, TOOLS, handoff, save_lead, search_docs, set_interest
 
 
 def cfg(lead):
@@ -94,3 +95,25 @@ def test_describe_does_not_repeat_the_word_class(session):
     institute = make_institute(session)
     lead = make_lead(session, institute, "1", name="Rahul", student_class="Class 11", course="JEE")
     assert notify.describe(lead).startswith("Rahul · Class 11 · JEE")
+
+
+def test_search_docs_returns_passages_of_this_institute_only(session):
+    mine = make_institute(session, "mine")
+    theirs = make_institute(session, "theirs")
+    add_document_with_chunks(session, mine, "prospectus.txt", ["bus transport from sector 19 costs 1200 a month"])
+    add_document_with_chunks(session, theirs, "secret.txt", ["bus transport from sector 19 is free"])
+    lead = make_lead(session, mine)
+    result = search_docs.invoke({"query": "bus from sector 19"}, cfg(lead))
+    assert "1200" in result and "prospectus.txt" in result
+    assert "free" not in result
+
+
+def test_search_docs_says_when_nothing_is_found(session):
+    lead = make_lead(session, make_institute(session))
+    assert search_docs.invoke({"query": "hostel"}, cfg(lead)) == NOTHING_FOUND
+
+
+def test_the_prompt_tells_the_agent_to_search_before_handing_off(session):
+    prompt = system_prompt(make_institute(session))
+    assert "search_docs" in prompt
+    assert prompt.index("search_docs") < prompt.index("call the handoff tool")
