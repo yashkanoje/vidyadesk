@@ -41,8 +41,18 @@ if a label below does not match, look for the nearest equivalent.
 
 ## WhatsApp checks
 
+Lessons from the first attempt (15 Oct 2026), which never got a message through:
+
+- The **app secret** is the 32-character code under App settings → Basic. It is not the long `EAA…` access token.
+- The access-token prompt shows nothing while you paste. **Paste once**: a token pasted four times was rejected.
+- The temporary token lasted about **one hour**, not a day.
+- Meta does not always subscribe your app to the WhatsApp Business Account. Check with
+  `GET /<WABA ID>/subscribed_apps` and subscribe with `POST /<WABA ID>/subscribed_apps`.
+- Meta reported the test number itself as `BANNED`, so messages to it never left the phone (one grey tick).
+  Before testing, check the number's `status` with `GET /<phone number ID>?fields=status`.
+
 1. In Meta's developer dashboard, create an app, add the WhatsApp product, and note the test number's
-   phone number ID, the temporary access token (it expires in about a day), and the app secret.
+   phone number ID, the WhatsApp Business Account ID, the temporary access token, and the app secret.
 2. Add the phones that will take part in the demo as allowed recipients of the test number.
 3. Put the app secret in `.env` as `WHATSAPP_APP_SECRET`, choose any long random string as
    `WHATSAPP_VERIFY_TOKEN`, and set `WHATSAPP_API_VERSION` to the version shown in the dashboard's sample request.
@@ -52,7 +62,7 @@ if a label below does not match, look for the nearest equivalent.
 5. Attach the test number to an institute you already added (it keeps its Telegram bot and owner):
    `.\.venv\Scripts\python -m leadagent.cli set-whatsapp --slug brightpath --number-id <phone number ID>`
    and paste the access token when asked.
-6. When the temporary token expires (about a day), get a new one from the dashboard and run the same
+6. When the temporary token expires (about an hour), get a new one from the dashboard and run the same
    `set-whatsapp` command again. Replies fail and the owner gets "Could not deliver" alerts until you do.
 
 - [ ] A WhatsApp message to the test number gets a reply.
