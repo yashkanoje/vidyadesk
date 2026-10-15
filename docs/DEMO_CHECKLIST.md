@@ -5,7 +5,8 @@ if a label below does not match, look for the nearest equivalent.
 
 ## Start the app
 
-1. Start a tunnel: `cloudflared tunnel --url http://localhost:8000`. Copy the `https://…trycloudflare.com` address.
+1. Start a tunnel: `cloudflared tunnel --protocol http2 --url http://localhost:8000`. (`--protocol http2` runs over
+   normal HTTPS; the default QUIC connection is blocked on some networks, such as the campus network.) Copy the `https://…trycloudflare.com` address.
 2. Put that address in `.env` as `PUBLIC_BASE_URL`. It changes every time the tunnel restarts.
 3. Check which model answers: `LLM_PROVIDER` in `.env` is `gemini` (free; test data only, never a real student's
    details) or `anthropic` (needs API credits). Restart the app after changing it.
