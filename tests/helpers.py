@@ -1,3 +1,7 @@
+import hashlib
+import math
+import re
+
 from langchain_core.messages import AIMessage, HumanMessage
 from leadagent.crypto import encrypt
 from leadagent.store.models import Institute, Lead
@@ -81,3 +85,22 @@ def run_turn(graph, lead, text, kind="text"):
         {"messages": [HumanMessage(text)], "kind": kind},
         thread_config(lead.institute_id, lead.id),
     )
+
+
+class FakeEmbedder:
+    """Stands in for the real model: texts that share words get similar vectors. Deterministic and instant."""
+
+    dims = 384
+
+    def _vector(self, text):
+        vector = [0.0] * self.dims
+        for word in re.findall(r"[a-z0-9]+", text.lower()):
+            vector[int(hashlib.md5(word.encode()).hexdigest(), 16) % self.dims] += 1.0
+        norm = math.sqrt(sum(x * x for x in vector)) or 1.0
+        return [x / norm for x in vector]
+
+    def passages(self, texts):
+        return [self._vector(text) for text in texts]
+
+    def query(self, text):
+        return self._vector(text)

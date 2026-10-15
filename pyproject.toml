@@ -17,10 +17,13 @@ dependencies = [
     "apscheduler>=3.10,<4",
     "cryptography>=43",
     "tzdata",
+    "fastembed>=0.9",
+    "pgvector>=0.5",
+    "pypdf>=5",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "fpdf2>=2.8"]
 evals = ["langchain-openai>=1.0"]
 
 [build-system]
@@ -33,3 +36,4 @@ include = ["leadagent*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = [".", "tests"]
+markers = ["model: needs the real embedding model; run with RUN_MODEL_TESTS=1"]
