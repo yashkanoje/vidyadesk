@@ -116,3 +116,12 @@ def test_scheduler_has_both_jobs():
         assert sorted(job.id for job in scheduler.get_jobs()) == ["digests", "nudges"]
     finally:
         scheduler.shutdown(wait=False)
+
+
+def test_a_late_follow_up_run_is_still_run():
+    # On 15 Oct 2026 a run started 2.4 s late and was skipped: the scheduler's default allows 1 s.
+    scheduler = start_scheduler()
+    try:
+        assert scheduler.get_job("nudges").misfire_grace_time >= 600
+    finally:
+        scheduler.shutdown(wait=False)
