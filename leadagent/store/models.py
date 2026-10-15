@@ -1,8 +1,11 @@
 from datetime import datetime, timezone
 
+from pgvector.sqlalchemy import VECTOR
 from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+from leadagent.rag.embed import DIMS
 
 
 def utcnow() -> datetime:
@@ -63,3 +66,25 @@ class Message(Base):
     text: Mapped[str] = mapped_column(Text)
     channel_msg_id: Mapped[str | None] = mapped_column(String(128))  # "tg:<update id>" or "wa:<message id>"
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class Document(Base):
+    __tablename__ = "documents"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    institute_id: Mapped[int] = mapped_column(ForeignKey("institutes.id", ondelete="CASCADE"), index=True)
+    filename: Mapped[str] = mapped_column(String(255))
+    status: Mapped[str] = mapped_column(String(16), default="ready")  # ready / failed
+    error: Mapped[str | None] = mapped_column(Text)
+    uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class Chunk(Base):
+    __tablename__ = "chunks"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    institute_id: Mapped[int] = mapped_column(ForeignKey("institutes.id", ondelete="CASCADE"), index=True)
+    document_id: Mapped[int] = mapped_column(ForeignKey("documents.id", ondelete="CASCADE"), index=True)
+    position: Mapped[int] = mapped_column()
+    text: Mapped[str] = mapped_column(Text)
+    embedding: Mapped[list[float]] = mapped_column(VECTOR(DIMS))

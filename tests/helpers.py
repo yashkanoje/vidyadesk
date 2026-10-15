@@ -4,6 +4,7 @@ import re
 
 from langchain_core.messages import AIMessage, HumanMessage
 from leadagent.crypto import encrypt
+from leadagent.store import repo
 from leadagent.store.models import Institute, Lead
 
 
@@ -104,3 +105,10 @@ class FakeEmbedder:
 
     def query(self, text):
         return self._vector(text)
+
+
+def add_document_with_chunks(session, institute, filename, texts):
+    document = repo.add_document(session, institute.id, filename)
+    repo.add_chunks(session, document, texts, FakeEmbedder().passages(texts))
+    session.commit()
+    return document

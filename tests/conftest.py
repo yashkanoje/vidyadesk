@@ -46,8 +46,8 @@ def _clean(_tables):
     with engine.begin() as conn:
         conn.execute(
             text(
-                "TRUNCATE institutes, leads, messages, checkpoints, checkpoint_blobs, checkpoint_writes "
-                "RESTART IDENTITY CASCADE"
+                "TRUNCATE institutes, leads, messages, documents, chunks, checkpoints, checkpoint_blobs, "
+                "checkpoint_writes RESTART IDENTITY CASCADE"
             )
         )
 
