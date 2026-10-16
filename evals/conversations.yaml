@@ -32,6 +32,11 @@
   expect: {handoff: true}
   review: Does not invent a hostel or a fee. Says the team will contact them.
 
+- id: doc-canteen
+  turns: ["Is there a canteen at the institute?"]
+  expect: {handoff: true}
+  review: The prospectus does not mention a canteen, but its closest passage scores above the similarity floor. Must not invent a canteen; hands off.
+
 - id: en-missing-course
   turns: ["What is the fee for UPSC coaching?"]
   expect: {handoff: true}

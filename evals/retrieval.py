@@ -3,10 +3,12 @@
     python -m evals.retrieval
 """
 import sys
+import tempfile
 import uuid
 from pathlib import Path
 
 import yaml
+from fpdf import FPDF
 
 from evals.checks import passage_hit, suggest_floor
 from leadagent.cli import add_institute
@@ -21,9 +23,18 @@ EXAMPLES = HERE.parent / "examples"
 TARGET = 0.8
 
 
-def main() -> int:
-    cases = yaml.safe_load((HERE / "retrieval.yaml").read_text(encoding="utf-8"))
-    create_tables()
+def make_pdf(text_path, pdf_path):
+    """A PDF copy of the prospectus, so retrieval is also measured on what owners usually upload."""
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Helvetica", size=11)
+    pdf.multi_cell(0, 6, text_path.read_text(encoding="utf-8"))
+    pdf.output(str(pdf_path))
+    return pdf_path
+
+
+def measure(document_path, cases):
+    """Return (hits, answerable scores, unanswerable scores, missed questions) for one document."""
     with session_scope() as session:
         institute_id = add_institute(
             session,
@@ -32,8 +43,8 @@ def main() -> int:
             facts=load_facts_file(EXAMPLES / "brightpath.yaml"),
             telegram_token="unused",
         ).id
-        status = ingest(session, institute_id, EXAMPLES / "brightpath-prospectus.txt").status
-    print(f"prospectus: {status}")
+        status = ingest(session, institute_id, document_path).status
+    print(f"{document_path.name}: {status}")
     hits, answerable, unanswerable, missed = 0, [], [], []
     try:
         with session_scope() as session:
@@ -51,14 +62,25 @@ def main() -> int:
     finally:
         with session_scope() as session:
             session.delete(repo.get_institute(session, institute_id))  # its documents and passages go with it
-    rate = hits / len(answerable)
-    print(f"expected passage in the top 3: {hits} of {len(answerable)} = {rate:.0%} (target {TARGET:.0%})")
-    for question in missed:
-        print(f"  missed: {question}")
-    print(f"best similarity, questions the prospectus answers: lowest {min(answerable):.3f}")
-    print(f"best similarity, questions it does not answer:   highest {max(unanswerable):.3f}")
-    print(f"suggested RAG_MIN_SIMILARITY: {suggest_floor(answerable, unanswerable)}")
-    return 0 if rate >= TARGET else 1
+    return hits, answerable, unanswerable, missed
+
+
+def main() -> int:
+    cases = yaml.safe_load((HERE / "retrieval.yaml").read_text(encoding="utf-8"))
+    create_tables()
+    text_path = EXAMPLES / "brightpath-prospectus.txt"
+    worst = 1.0
+    with tempfile.TemporaryDirectory() as folder:
+        for path in (text_path, make_pdf(text_path, Path(folder) / "brightpath-prospectus.pdf")):
+            hits, answerable, unanswerable, missed = measure(path, cases)
+            rate = hits / len(answerable)
+            worst = min(worst, rate)
+            print(f"  expected passage in the top 3: {hits} of {len(answerable)} = {rate:.0%} (target {TARGET:.0%})")
+            for question in missed:
+                print(f"    missed: {question}")
+            print(f"  best similarity, answerable: lowest {min(answerable):.4f}; unanswerable: highest {max(unanswerable):.4f}")
+            print(f"  suggested RAG_MIN_SIMILARITY: {suggest_floor(answerable, unanswerable)}")
+    return 0 if worst >= TARGET else 1
 
 
 if __name__ == "__main__":
