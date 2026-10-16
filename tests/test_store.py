@@ -178,3 +178,15 @@ def test_digest_leads_groups(session):
     assert [lead.id for lead in hot_leads] == [hot.id]
     assert [lead.id for lead in waiting_leads] == [waiting.id]
     assert old.id not in [lead.id for lead in new_leads]
+
+
+def test_leads_for_filters_and_orders_newest_first(session):
+    institute = make_institute(session)
+    other = make_institute(session, "other")
+    old = make_lead(session, institute, "1", stage="handed_off", created_at=NOON_IST - timedelta(days=10))
+    new = make_lead(session, institute, "2", stage="collecting", interest="hot", created_at=NOON_IST)
+    make_lead(session, other, "3")
+    assert [l.id for l in repo.leads_for(session, institute.id)] == [new.id, old.id]
+    assert [l.id for l in repo.leads_for(session, institute.id, stage="handed_off")] == [old.id]
+    assert [l.id for l in repo.leads_for(session, institute.id, interest="hot")] == [new.id]
+    assert [l.id for l in repo.leads_for(session, institute.id, since=NOON_IST - timedelta(days=1))] == [new.id]

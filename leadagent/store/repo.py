@@ -264,3 +264,26 @@ def user_by_email(session, email):
 
 def get_user(session, user_id):
     return session.get(User, user_id)
+
+
+def leads_for(session, institute_id, stage=None, interest=None, since=None):
+    query = select(Lead).where(Lead.institute_id == institute_id)
+    if stage:
+        query = query.where(Lead.stage == stage)
+    if interest:
+        query = query.where(Lead.interest == interest)
+    if since is not None:
+        query = query.where(Lead.created_at >= since)
+    return list(session.scalars(query.order_by(Lead.id.desc())))
+
+
+def messages_for(session, institute_id, lead_id):
+    return list(
+        session.scalars(
+            select(Message).where(Message.institute_id == institute_id, Message.lead_id == lead_id).order_by(Message.id)
+        )
+    )
+
+
+def close_lead(session, lead) -> None:
+    lead.stage = "closed"

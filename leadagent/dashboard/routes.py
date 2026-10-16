@@ -1,19 +1,45 @@
+import csv
+import io
 import logging
+from datetime import timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 
+from leadagent.actions import delete_lead_and_history
 from leadagent.auth import LoginThrottle, dummy_hash, password_matches
 from leadagent.store import repo
 from leadagent.store.db import session_scope
+from leadagent.store.models import utcnow
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/dash")
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent / "templates"))
 throttle = LoginThrottle()
+
+STAGES = ("new", "collecting", "qualified", "handed_off", "closed")
+INTERESTS = ("hot", "warm", "cold")
+FORMULA_START = ("=", "+", "-", "@")
+
+
+def _filters(stage, interest, days):
+    since = utcnow() - timedelta(days=days) if days > 0 else None
+    return (stage if stage in STAGES else None), (interest if interest in INTERESTS else None), since
+
+
+def _cell(value) -> str:
+    text = "" if value is None else str(value)
+    return "'" + text if text.startswith(FORMULA_START) else text  # a spreadsheet must not run it as a formula
+
+
+def _owned_lead(session, institute, lead_id):
+    lead = repo.get_lead(session, institute.id, lead_id)
+    if lead is None:
+        raise HTTPException(404)
+    return lead
 
 
 def _user(session, request):
@@ -96,7 +122,7 @@ def logout(request: Request):
     return RedirectResponse("/dash/login", status_code=303)
 
 
-# Placeholders until Tasks 6 and 9 replace them: they already apply the access rules.
+# Placeholder until Task 9 replaces it: they already apply the access rules.
 @router.get("/admin/institutes", response_class=HTMLResponse)
 def institutes_page(request: Request):
     with session_scope() as session:
@@ -105,7 +131,74 @@ def institutes_page(request: Request):
 
 
 @router.get("/{slug}/leads", response_class=HTMLResponse)
-def leads_page(request: Request, slug: str):
+def leads_page(request: Request, slug: str, stage: str = "", interest: str = "", days: int = 0):
     with session_scope() as session:
-        _institute(session, _user(session, request), slug)
-        return HTMLResponse("Leads")
+        user = _user(session, request)
+        institute = _institute(session, user, slug)
+        leads = repo.leads_for(session, institute.id, *_filters(stage, interest, days))
+        return _render(
+            request,
+            "leads.html",
+            {
+                "user": user, "institute": institute, "leads": leads, "local": _local(institute),
+                "stage": stage, "interest": interest, "days": days, "stages": STAGES, "interests": INTERESTS,
+            },
+        )
+
+
+@router.get("/{slug}/leads.csv")
+def leads_csv(request: Request, slug: str, stage: str = "", interest: str = "", days: int = 0):
+    with session_scope() as session:
+        institute = _institute(session, _user(session, request), slug)
+        local = _local(institute)
+        out = io.StringIO()
+        writer = csv.writer(out)
+        writer.writerow(["id", "created", "name", "class", "course", "phone", "stage", "interest", "last message"])
+        for lead in repo.leads_for(session, institute.id, *_filters(stage, interest, days)):
+            writer.writerow(
+                [
+                    lead.id, local(lead.created_at), _cell(lead.name), _cell(lead.student_class), _cell(lead.course),
+                    _cell(lead.phone or lead.channel_user_id), lead.stage, lead.interest or "", local(lead.last_user_msg_at),
+                ]
+            )
+        return Response(
+            "﻿" + out.getvalue(),
+            media_type="text/csv; charset=utf-8",
+            headers={"Content-Disposition": f'attachment; filename="{institute.slug}-leads.csv"'},
+        )
+
+
+@router.get("/{slug}/leads/{lead_id}", response_class=HTMLResponse)
+def lead_page(request: Request, slug: str, lead_id: int):
+    with session_scope() as session:
+        user = _user(session, request)
+        institute = _institute(session, user, slug)
+        lead = _owned_lead(session, institute, lead_id)
+        return _render(
+            request,
+            "lead.html",
+            {
+                "user": user, "institute": institute, "lead": lead, "local": _local(institute),
+                "messages": repo.messages_for(session, institute.id, lead.id),
+            },
+        )
+
+
+@router.post("/{slug}/leads/{lead_id}/{action}")
+def lead_action(request: Request, slug: str, lead_id: int, action: str):
+    if action not in ("resume", "close", "delete"):
+        raise HTTPException(404)
+    with session_scope() as session:
+        institute = _institute(session, _user(session, request), slug)
+        lead = _owned_lead(session, institute, lead_id)
+        if action == "delete":
+            delete_lead_and_history(session, lead)
+            _flash(request, f"Lead {lead_id} and its messages are deleted.")
+            return RedirectResponse(f"/dash/{institute.slug}/leads", status_code=303)
+        if action == "resume":
+            repo.resume(session, lead)
+            _flash(request, "The assistant is switched back on for this lead.")
+        else:
+            repo.close_lead(session, lead)
+            _flash(request, "Lead closed.")
+        return RedirectResponse(f"/dash/{institute.slug}/leads/{lead_id}", status_code=303)

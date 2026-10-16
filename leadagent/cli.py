@@ -16,12 +16,11 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import httpx
 
-from leadagent.agent.graph import get_checkpointer
+from leadagent.actions import delete_lead_and_history
 from leadagent.auth import PasswordError, hash_password
 from leadagent.channels import telegram
 from leadagent.crypto import encrypt
 from leadagent.facts import Facts, FactsError, load_facts_file
-from leadagent.locks import lock_for
 from leadagent.settings import get_settings
 from leadagent.store import repo
 from leadagent.store.db import create_tables, session_scope
@@ -81,10 +80,7 @@ def set_owner(session, slug, chat_id) -> Institute:
     # message made them a lead. Remove it, or the owner gets their own follow-up and shows up in the summary.
     lead = repo.find_lead(session, institute.id, "telegram", str(chat_id))
     if lead is not None:
-        with lock_for(lead.id):
-            repo.delete_lead(session, lead)
-            session.flush()
-            get_checkpointer().delete_thread(str(lead.id))
+        delete_lead_and_history(session, lead)
     return institute
 
 

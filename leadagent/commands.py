@@ -1,5 +1,4 @@
-from leadagent.agent.graph import get_checkpointer
-from leadagent.locks import lock_for
+from leadagent.actions import delete_lead_and_history
 from leadagent.store import repo
 
 HELP = (
@@ -26,8 +25,5 @@ def handle(session, institute, msg) -> str | None:
         repo.resume(session, lead)
         return f"Assistant switched back on for lead {lead.id}."
     # Wait for any reply being written for this lead: it would otherwise save its chat state after the delete.
-    with lock_for(lead.id):
-        repo.delete_lead(session, lead)
-        session.flush()
-        get_checkpointer().delete_thread(str(lead.id))
+    delete_lead_and_history(session, lead)
     return f"Lead {lead.id} and its messages are deleted."
