@@ -118,6 +118,7 @@ def test_delete_removes_the_lead_its_messages_and_its_chat_state(client, session
         ("post", "/dash/other/leads/{theirs}/delete"),
         ("post", "/dash/bright/leads/{theirs}/delete"),
         ("post", "/dash/bright/leads/{theirs}/resume"),
+        ("post", "/dash/bright/leads/{theirs}/close"),
         ("post", "/dash/bright/leads/{mine}/explode"),
     ],
 )

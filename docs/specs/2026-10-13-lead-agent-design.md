@@ -473,6 +473,10 @@ fixed, each with a test (`tests/test_review_fixes.py`). The smaller findings bel
 | Command line | A mistyped facts path gives a traceback; an empty Telegram token is accepted | Next time the command line is touched | Catch both |
 | Operations | Printing the settings object (for example in an error) shows the database password and API keys | Before server deployment | Store secrets as pydantic `SecretStr` |
 | Tests | Weak spots: one delivery test never calls `deliver`; one isolation test would pass if the tool always failed; no tests at the exact 2 h, 20 h, 09:00 and 21:00 edges; no test that tokens stay out of logs; `cli.main()` and app start-up are untested | Before M2 | |
+| Dashboard | Sessions are signed cookies with no server-side store: logout and set-password do not end other sessions, which stay valid up to 7 days | Before more than a handful of owners, or if a laptop is lost | A server-side session table, or a per-user session version checked on every request |
+| Dashboard | Failed-login limit is per email, so anyone who knows an owner's email can lock them out for 15 minutes; concurrent guesses can slip a few past the limit | A targeted owner | Per-IP limits plus an atomic counter in the database |
+| Dashboard | Upload size is checked after the form is parsed, and the form is parsed before the login check | Public deployment | A request-body limit (~11 MB) in Caddy (`request_body max_size`) |
+| Dashboard | The stats page shows leads waiting for the team now, not handoffs per day | Owners want handoff trends | Count handoffs per day from a handoff timestamp |
 
 ## 16. Not yet verified
 

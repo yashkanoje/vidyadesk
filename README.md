@@ -3,7 +3,7 @@
 An AI agent that answers student and parent enquiries for coaching institutes on WhatsApp
 and Telegram, records each one as a lead, and makes sure the owner follows up.
 
-**Status:** M1 (core agent) is built and its automatic tests pass. Behaviour checks on Gemini: 21 of 22. The live
+**Status:** M1 (core agent) is built and its automatic tests pass. Behaviour checks on Gemini: 26 of 26 (re-run 16 Oct 2026, one run). The live
 Telegram demo works, and the follow-up and daily summary were both verified live on 15 Oct 2026. WhatsApp is parked:
 Meta reports the test number as banned (the webhook, app secret, token and subscription all work). Still to do for M1:
 a native Odia speaker's read, and the behaviour checks on Claude (the Anthropic account has no API credits). M2 (RAG)
@@ -44,7 +44,7 @@ do not answer a question.
 
 PDF, `.txt` and `.md`, up to 10 MB. Adding a file with the same name replaces the old version. Scanned PDFs
 are refused (no OCR yet). The embedding model runs locally and downloads once (about 70 MB) into `data/models/`.
-PostgreSQL needs the pgvector extension. Retrieval quality: `python -m evals.retrieval`.
+PostgreSQL needs the pgvector extension. Retrieval quality: `python -m evals.retrieval` (needs the dev extras: `pip install -e ".[dev]"`, it uses fpdf2).
 Real-model tests: set `RUN_MODEL_TESTS=1` before `pytest`.
 
 ## Dashboard

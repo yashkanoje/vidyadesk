@@ -7,7 +7,7 @@
   <select name="interest"><option value="">Any interest</option>{% for i in interests %}<option value="{{ i }}" {% if i == interest %}selected{% endif %}>{{ i }}</option>{% endfor %}</select>
   <select name="days"><option value="0">All time</option>{% for d in (1, 7, 30) %}<option value="{{ d }}" {% if d == days %}selected{% endif %}>Last {{ d }} day{% if d > 1 %}s{% endif %}</option>{% endfor %}</select>
   <button>Filter</button>
-  <a href="/dash/{{ institute.slug }}/leads.csv?stage={{ stage }}&amp;interest={{ interest }}&amp;days={{ days }}">Download CSV</a>
+  <a href="/dash/{{ institute.slug }}/leads.csv?stage={{ stage|urlencode }}&amp;interest={{ interest|urlencode }}&amp;days={{ days }}">Download CSV</a>
 </form>
 <div class="scroll"><table>
 <tr><th>#</th><th>Name</th><th>Class</th><th>Course</th><th>Contact</th><th>Stage</th><th>Interest</th><th>Created</th></tr>
