@@ -245,8 +245,7 @@ deletes its chunks.
 1. Accept PDF or plain text, up to 10 MB.
 2. Extract the text. A PDF with no extractable text is marked `failed` with the reason
    "no text found (scanned PDF)".
-3. Split into chunks of about 500 tokens with a 50-token overlap, breaking on headings and
-   paragraphs where possible.
+3. Split into passages of about 100 words (roughly 130 tokens) with a 20-word overlap, breaking between paragraphs where possible. (Changed from 500 tokens on 15 Oct 2026: institute documents are short and sectioned, and large passages made retrieval scores meaningless.)
 4. Embed each chunk and store it with its `institute_id`.
 
 In M2 ingestion runs from a command: `python -m leadagent.rag.ingest --institute <slug> <file>`.
@@ -258,7 +257,7 @@ In M3 the dashboard upload page calls the same function.
   distance, always filtered by `institute_id`.
 - Chunks below a similarity threshold are dropped. If none remain, the tool returns
   "nothing found" and the agent hands off.
-- The threshold is set from the retrieval test set, not guessed.
+- The threshold is set from the retrieval test set, not guessed. Measured 15 Oct 2026 with the real model: the expected passage was in the top 3 for 21 of 21 answerable questions (100%, target 80%). The floor `RAG_MIN_SIMILARITY = 0.585` sits just under the weakest answerable question ("Who teaches physics?", 0.58506). Unanswerable questions scored at most 0.599 (canteen), so the groups overlap slightly: hostel (0.560), UPSC (0.560), library (0.545) and swimming pool (0.490) find nothing, but the canteen question passes the floor and the prompt must make the agent decline it.
 
 ## 8. Dashboard (M3)
 
@@ -417,6 +416,10 @@ build: any shortcut taken is added here. It is the refinement backlog once M3 is
 | RAG | Documents written in Hindi or Odia | Such a document arrives | Needs a multilingual embedding model |
 | RAG | Reranking, keyword-plus-vector search | Top-3 retrieval stays under 80% | Measure first |
 | RAG | Word (`.docx`) upload | An owner asks | Small |
+| RAG | The original uploaded files are not kept; only their passages are | Re-splitting documents with new settings | Store originals under `data/uploads/<institute>/` |
+| RAG | A re-uploaded file is matched by name only | An owner renames a file between versions | List shows both; delete the old one |
+| RAG | Query wording: the agent writes the English query itself | Retrieval misses on Odia or Hindi questions in practice | Add a few Odia and Hindi questions to `evals/retrieval.yaml` |
+| Agent | Reply script does not always match the user's (Devanagari answered in Latin letters; Latin-letter Odia answered in Odia script) | Before an Odia- or Hindi-heavy institute | One general prompt rule, then re-run the language checks |
 | Dashboard | Separate React frontend | The pages need heavy interactivity | Not needed for these pages |
 | Dashboard | Self-signup, billing | 10 or more clients | |
 | Dashboard | Owner alerts on WhatsApp | An owner will not use Telegram | Needs an approved utility template |
@@ -473,11 +476,10 @@ These were assumed during design. Each is checked at the point shown.
 |---|---|
 | Claude Haiku 4.5 writes natural Odia, including Odia in Latin script. **Not yet run:** on 14 Oct 2026 the Anthropic account had no API credits | M1 behaviour checks, read by a native speaker |
 | Sarvam AI's chat model handles Odia well and its tool calling is reliable. Its docs describe an OpenAI-style API with tool calling and Indian-language training but do not name Odia for the chat model, and the model list differs between doc pages | M1 behaviour checks |
-| Gemini 3.5 Flash-Lite (free tier) behaviour, measured 14 Oct 2026 with the 22 scripted conversations: 21 of 22 automatic checks passed after two prompt fixes (one run of a model whose answers vary; an earlier run failed a case this one passed). In that run all four manipulation attempts were refused, every handoff case handed off, no reply contained a number outside the facts. Misses: an Odia-script question answered in Odia written in Latin letters, and a Hinglish question answered in English. Odia wording not yet read by a native speaker. Replies take about 3 s; `gemini-3.8-flash` was overloaded on the free tier and `gemini-2.5-flash` is closed to new users | Re-run `python -m evals.run --provider gemini --pause 12` after any prompt change |
+| Gemini 3.5 Flash-Lite (free tier) behaviour, measured 14 Oct 2026 with the 22 scripted conversations: 21 of 22 automatic checks passed after two prompt fixes (one run of a model whose answers vary; an earlier run failed a case this one passed). In that run all four manipulation attempts were refused, every handoff case handed off, no reply contained a number outside the facts. Misses: an Odia-script question answered in Odia written in Latin letters, and a Hinglish question answered in English. Odia wording not yet read by a native speaker. M2 re-run with the prospectus (16 Oct 2026, one run): 23 of 25 passed, including the three document checks and the hostel handoff; both misses were the reply's script (see Section 15). Replies take about 3 s; `gemini-3.8-flash` was overloaded on the free tier and `gemini-2.5-flash` is closed to new users | Re-run `python -m evals.run --provider gemini --pause 12` after any prompt change |
 | Meta's WhatsApp test number: free, no business verification, a few recipient numbers. **Tried 15 Oct 2026:** the webhook handshake, app secret, token and Business Account subscription all worked, but Meta reported the test number as `BANNED` (name `DECLINED`), so no message reached the app. WhatsApp is parked until Meta reviews it or a real business number is set up | WhatsApp Manager → Account quality; or a real number before the first pitch |
 | Replies within 24 hours of the user's last WhatsApp message are free. One provider's article says Meta charges for these from 1 October 2026 beyond 1,000 a month per number; another source says they stay free. Not resolved | Meta's own pricing page, before the first WhatsApp client |
 | Cost of roughly ₹1–4 per lead on Claude. Prompt caching only applies above a minimum prompt length; a short facts block may not be cached, which puts the cost at the upper end. Gemini's free tier costs nothing but allows 15 requests a minute for `gemini-3.5-flash-lite` (measured 14 Oct 2026), enough for tests and a demo, not for an institute | Measured token use on a paid model |
-| fastembed provides `BAAI/bge-small-en-v1.5` at 384 dimensions | M2 plan |
-| pgvector can be installed on the local Windows PostgreSQL, or a hosted PostgreSQL with pgvector is used for development | M2 plan |
+| fastembed 0.9 with `BAAI/bge-small-en-v1.5` (384 dimensions) runs locally on Python 3.13 — verified in M2. pgvector 0.8.7 built from the official source with Visual Studio Build Tools 2022 for the local PostgreSQL 18 (15 Oct 2026) | Done |
 | Oracle Cloud Always Free signup works with an Indian card | Before the first demo. Fallback: run demos from the PC through the tunnel |
 | What India's Digital Personal Data Protection Act requires for minors' data and consent | Before the first paying client |
