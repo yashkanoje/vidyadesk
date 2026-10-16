@@ -190,3 +190,14 @@ def test_leads_for_filters_and_orders_newest_first(session):
     assert [l.id for l in repo.leads_for(session, institute.id, stage="handed_off")] == [old.id]
     assert [l.id for l in repo.leads_for(session, institute.id, interest="hot")] == [new.id]
     assert [l.id for l in repo.leads_for(session, institute.id, since=NOON_IST - timedelta(days=1))] == [new.id]
+
+
+def test_lead_stats_count_per_local_day(session):
+    institute = make_institute(session)
+    make_lead(session, institute, "1", interest="hot", created_at=NOON_IST)
+    make_lead(session, institute, "2", created_at=NOON_IST - timedelta(days=1))
+    make_lead(session, institute, "3", stage="handed_off", created_at=NOON_IST - timedelta(days=30))
+    stats = repo.lead_stats(session, institute.id, "Asia/Kolkata", NOON_IST, days=14)
+    assert len(stats["per_day"]) == 14
+    assert [count for _, count in stats["per_day"]][-2:] == [1, 1]
+    assert (stats["total"], stats["hot"], stats["hot_share"], stats["waiting"]) == (2, 1, 50, 1)

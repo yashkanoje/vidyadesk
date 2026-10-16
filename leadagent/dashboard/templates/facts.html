@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Facts · {{ institute.name }}{% endblock %}
+{% block content %}
+<h1>Facts</h1>
+<p>Fees, batches, timings and FAQ, which the assistant quotes exactly. Every course needs a name, classes, a fee and at
+least one batch. Keep the layout (YAML): two spaces per level, a dash before each list item.</p>
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+<form method="post" action="/dash/{{ institute.slug }}/facts">
+  <textarea name="facts_yaml" spellcheck="false">{{ text }}</textarea>
+  <p><button>Save</button></p>
+</form>
+{% endblock %}

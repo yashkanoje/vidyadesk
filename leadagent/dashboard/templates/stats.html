@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Stats · {{ institute.name }}{% endblock %}
+{% block content %}
+<h1>Last 14 days</h1>
+<p><strong>{{ stats.total }} leads</strong> · {{ stats.hot_share }}% hot · {{ stats.waiting }} waiting for the team now</p>
+<div class="scroll"><table>
+<tr><th>Day</th><th>New leads</th></tr>
+{% for day, count in stats.per_day %}
+<tr><td>{{ day.strftime("%a %d %b") }}</td><td><span class="bar" style="width: {{ [count * 16, 400]|min }}px"></span> {{ count }}</td></tr>
+{% endfor %}
+</table></div>
+{% endblock %}

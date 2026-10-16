@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import func, or_, select
@@ -287,3 +287,28 @@ def messages_for(session, institute_id, lead_id):
 
 def close_lead(session, lead) -> None:
     lead.stage = "closed"
+
+
+def lead_stats(session, institute_id, timezone_name, now, days=14):
+    """Leads created per local day for the last `days` days, the share rated hot, and how many wait for the team."""
+    zone = ZoneInfo(timezone_name)
+    today = now.astimezone(zone).date()
+    first_day = today - timedelta(days=days - 1)
+    since = datetime.combine(first_day, time.min, tzinfo=zone)
+    leads = session.scalars(select(Lead).where(Lead.institute_id == institute_id, Lead.created_at >= since)).all()
+    per_day = {first_day + timedelta(days=i): 0 for i in range(days)}
+    for lead in leads:
+        day = lead.created_at.astimezone(zone).date()
+        if day in per_day:  # a clock a little ahead must not crash the page
+            per_day[day] += 1
+    hot = sum(1 for lead in leads if lead.interest == "hot")
+    waiting = session.scalar(
+        select(func.count()).select_from(Lead).where(Lead.institute_id == institute_id, Lead.stage == "handed_off")
+    )
+    return {
+        "per_day": list(per_day.items()),
+        "total": len(leads),
+        "hot": hot,
+        "hot_share": round(100 * hot / len(leads)) if leads else 0,
+        "waiting": waiting,
+    }

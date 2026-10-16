@@ -6,12 +6,14 @@ from datetime import timedelta
 from pathlib import Path, PurePosixPath
 from zoneinfo import ZoneInfo
 
+import yaml
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 
 from leadagent.actions import delete_lead_and_history
 from leadagent.auth import LoginThrottle, dummy_hash, password_matches
+from leadagent.facts import FactsError, parse_facts
 from leadagent.rag.ingest import MAX_BYTES, IngestError, ingest
 from leadagent.store import repo
 from leadagent.store.db import session_scope
@@ -262,3 +264,44 @@ def lead_action(request: Request, slug: str, lead_id: int, action: str):
             repo.close_lead(session, lead)
             _flash(request, "Lead closed.")
         return RedirectResponse(f"/dash/{institute.slug}/leads/{lead_id}", status_code=303)
+
+
+def _facts_text(institute) -> str:
+    return yaml.safe_dump(institute.facts, allow_unicode=True, sort_keys=False)
+
+
+@router.get("/{slug}/facts", response_class=HTMLResponse)
+def facts_page(request: Request, slug: str):
+    with session_scope() as session:
+        user = _user(session, request)
+        institute = _institute(session, user, slug)
+        return _render(request, "facts.html", {"user": user, "institute": institute, "text": _facts_text(institute), "error": None})
+
+
+@router.post("/{slug}/facts", response_class=HTMLResponse)
+def save_facts(request: Request, slug: str, facts_yaml: str = Form(...)):
+    with session_scope() as session:
+        user = _user(session, request)
+        institute = _institute(session, user, slug)
+        try:
+            facts = parse_facts(yaml.safe_load(facts_yaml))
+        except yaml.YAMLError as exc:
+            error = f"This is not valid YAML: {exc}"
+        except FactsError as exc:
+            error = str(exc)
+        else:
+            institute.facts = facts.model_dump()
+            _flash(request, "Facts saved. The assistant uses them from the next message.")
+            return RedirectResponse(f"/dash/{institute.slug}/facts", status_code=303)
+        return _render(
+            request, "facts.html", {"user": user, "institute": institute, "text": facts_yaml, "error": error}, status_code=400
+        )
+
+
+@router.get("/{slug}/stats", response_class=HTMLResponse)
+def stats_page(request: Request, slug: str):
+    with session_scope() as session:
+        user = _user(session, request)
+        institute = _institute(session, user, slug)
+        stats = repo.lead_stats(session, institute.id, institute.timezone, utcnow())
+        return _render(request, "stats.html", {"user": user, "institute": institute, "stats": stats})
