@@ -33,9 +33,17 @@ def test_a_path_in_the_filename_is_stripped(name, stored):
     assert safe_filename(name) == stored
 
 
-@pytest.mark.parametrize("name", ["", ".", "..", "   "])
-def test_an_empty_or_dot_filename_is_refused(name):
+@pytest.mark.parametrize("name", ["", ".", "..", "   ", "Y:evil.txt", "Y:.env", "a\x00b.txt", "what?.txt"])
+def test_an_empty_dot_or_drive_filename_is_refused(name):
     assert safe_filename(name) is None
+
+
+def test_a_drive_relative_upload_stores_nothing_and_writes_nothing(client, session, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)  # on Windows a drive-relative name resolves against the current directory
+    page = upload(client, "Y:evil.txt", b"x")
+    assert "Choose a file to upload." in page.text
+    assert session.scalars(select(Document)).all() == []
+    assert list(tmp_path.iterdir()) == []
 
 
 def test_a_refused_upload_stores_nothing(client, session):
@@ -69,3 +77,13 @@ def test_another_institutes_documents_are_out_of_reach(client, session):
     assert upload(client, "faq.txt", b"x", slug="other").status_code == 404
     assert client.post(f"/dash/bright/documents/{document.id}/delete").status_code == 404
     assert "secret.txt" not in client.get("/dash/bright/documents").text
+
+
+def test_another_institutes_document_survives_a_delete_through_its_own_slug(client, session):
+    from helpers import add_document_with_chunks
+    from leadagent.store import repo
+
+    document = add_document_with_chunks(session, repo.institute_by_slug(session, "other"), "secret.txt", ["their passage"])
+    assert client.post(f"/dash/other/documents/{document.id}/delete").status_code == 404
+    session.expire_all()
+    assert session.scalars(select(Document)).one().filename == "secret.txt"

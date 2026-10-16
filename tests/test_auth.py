@@ -39,6 +39,22 @@ def test_the_throttle_blocks_after_five_failures_and_forgets_after_the_window():
     assert not throttle.blocked("a@b")
 
 
+def test_checking_an_unseen_key_stores_nothing():
+    throttle = LoginThrottle()
+    assert not throttle.blocked("never@failed")
+    assert len(throttle._failures) == 0
+
+
+def test_stale_keys_are_pruned_when_the_table_is_full():
+    now = [0.0]
+    throttle = LoginThrottle(window=900, max_keys=2, clock=lambda: now[0])
+    for key in ("a@b", "c@d", "e@f"):
+        throttle.failed(key)
+    now[0] = 901
+    throttle.failed("g@h")
+    assert list(throttle._failures) == ["g@h"]
+
+
 def test_a_successful_login_clears_the_failures():
     throttle = LoginThrottle(limit=2, window=900, clock=lambda: 0.0)
     throttle.failed("a@b")

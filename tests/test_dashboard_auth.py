@@ -52,6 +52,11 @@ def test_a_wrong_password_and_an_unknown_email_get_the_same_answer(client, sessi
     assert "Wrong email or password" in wrong.text and "Wrong email or password" in unknown.text
 
 
+def test_an_absurdly_long_email_gets_the_shared_answer(client, session):
+    response = login(client, email="a" * 300 + "@x.test")
+    assert response.status_code == 401 and "Wrong email or password" in response.text
+
+
 def test_five_failures_block_even_the_right_password(client, session):
     make_user(session, institute=make_institute(session))
     for _ in range(5):

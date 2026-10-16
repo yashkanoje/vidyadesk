@@ -107,6 +107,8 @@ def login_page(request: Request):
 @router.post("/login", response_class=HTMLResponse)
 def login(request: Request, email: str = Form(...), password: str = Form(...)):
     key = email.strip().lower()
+    if len(key) > 254:  # no such address; do not let it into the throttle
+        return _render(request, "login.html", {"error": "Wrong email or password."}, status_code=401)
     if throttle.blocked(key):
         return _render(
             request, "login.html", {"error": "Too many failed attempts. Try again in 15 minutes."}, status_code=429
@@ -184,7 +186,9 @@ def toggle_institute(request: Request, slug: str):
 def safe_filename(name):
     """The bare file name of an upload, or None. Never a path, so nothing is written outside the temp folder."""
     bare = PurePosixPath((name or "").replace("\\", "/")).name.strip()[:255]
-    return None if bare in ("", ".", "..") else bare
+    # ":" and the rest are drive and reserved characters: on Windows "Y:.env" would resolve outside the temp folder
+    bad = bare in ("", ".", "..") or any(c in ':<>"|?*' or ord(c) < 32 for c in bare)
+    return None if bad else bare
 
 
 @router.get("/{slug}/documents", response_class=HTMLResponse)
@@ -213,8 +217,10 @@ def upload_document(request: Request, slug: str, file: UploadFile = File(...)):
         else:
             with tempfile.TemporaryDirectory() as folder:
                 path = Path(folder) / name
-                path.write_bytes(data)
                 try:
+                    if path.parent != Path(folder):
+                        raise IngestError("Choose a file to upload.")
+                    path.write_bytes(data)
                     document = ingest(session, institute.id, path)
                     reason = f" ({document.error})" if document.error else ""
                     _flash(request, f"Added {document.filename}: {document.status}{reason}")

@@ -45,16 +45,21 @@ class LoginThrottle:
     running more than one process.
     """
 
-    def __init__(self, limit=5, window=900, clock=time.monotonic):
-        self.limit, self.window, self.clock = limit, window, clock
+    def __init__(self, limit=5, window=900, clock=time.monotonic, max_keys=10_000):
+        self.limit, self.window, self.clock, self.max_keys = limit, window, clock, max_keys
         self._failures: dict[str, deque] = {}
         self._lock = threading.Lock()
 
     def _recent(self, key):
-        failures = self._failures.setdefault(key, deque())
+        """The live failures for `key`; never stores a key."""
+        failures = self._failures.get(key)
+        if failures is None:
+            return ()
         now = self.clock()
         while failures and now - failures[0] > self.window:
             failures.popleft()
+        if not failures:
+            del self._failures[key]
         return failures
 
     def blocked(self, key) -> bool:
@@ -63,7 +68,10 @@ class LoginThrottle:
 
     def failed(self, key) -> None:
         with self._lock:
-            self._recent(key).append(self.clock())
+            now = self.clock()
+            if len(self._failures) > self.max_keys:
+                self._failures = {k: v for k, v in self._failures.items() if v and now - v[-1] <= self.window}
+            self._failures.setdefault(key, deque()).append(now)
 
     def succeeded(self, key) -> None:
         with self._lock:
