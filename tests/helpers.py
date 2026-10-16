@@ -3,9 +3,10 @@ import math
 import re
 
 from langchain_core.messages import AIMessage, HumanMessage
+from leadagent.auth import hash_password
 from leadagent.crypto import encrypt
 from leadagent.store import repo
-from leadagent.store.models import Institute, Lead
+from leadagent.store.models import Institute, Lead, User
 
 
 FACTS = {
@@ -48,6 +49,18 @@ def make_institute(session, slug="bright", owner_chat_id="999", whatsapp_phone_n
     session.add(institute)
     session.commit()
     return institute
+
+
+def make_user(session, email="owner@bright.test", password="correct horse 1", role="owner", institute=None):
+    user = User(
+        email=email,
+        password_hash=hash_password(password, rounds=4),
+        role=role,
+        institute_id=institute.id if institute else None,
+    )
+    session.add(user)
+    session.commit()
+    return user
 
 
 def make_lead(session, institute, user_id="111", channel="telegram", **fields):

@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     whatsapp_verify_token: str = ""
     whatsapp_api_version: str = "v24.0"
     public_base_url: str = ""
+    # Signs the dashboard's login cookie. Generate once: python -c "import secrets; print(secrets.token_urlsafe(32))"
+    session_secret: str = ""
+    # The login cookie is only sent over HTTPS. Set false only for local testing over plain http.
+    session_https_only: bool = True
 
 
 @lru_cache

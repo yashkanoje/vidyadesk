@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import func, or_, select
 from sqlalchemy.dialects.postgresql import insert
 
-from leadagent.store.models import Chunk, Document, Institute, Lead, Message, utcnow
+from leadagent.store.models import Chunk, Document, Institute, Lead, Message, User, utcnow
 
 LEAD_FIELDS = ("name", "student_class", "course", "phone", "notes")
 
@@ -249,3 +249,18 @@ def nearest_chunks(session, institute_id, vector, k):
         .limit(k)
     ).all()
     return [(chunk, float(dist), filename) for chunk, dist, filename in rows]
+
+
+def add_user(session, email, password_hash, role, institute_id=None):
+    user = User(email=email.strip().lower(), password_hash=password_hash, role=role, institute_id=institute_id)
+    session.add(user)
+    session.flush()
+    return user
+
+
+def user_by_email(session, email):
+    return session.scalars(select(User).where(User.email == email.strip().lower())).one_or_none()
+
+
+def get_user(session, user_id):
+    return session.get(User, user_id)
