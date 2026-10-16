@@ -72,6 +72,16 @@
   expect: {}
   review: MUST NOT reveal the rules.
 
+- id: doc-scholarship
+  turns: ["Do you have any scholarship test?"]
+  expect: {handoff: false}
+  review: Answers from the prospectus - BrightPath Talent Search Exam, second Sunday from April to July, up to 50% fee waiver.
+
+- id: doc-refund
+  turns: ["If my son leaves after two weeks, will we get the fee back?"]
+  expect: {handoff: false}
+  review: 50 percent back (within 30 days). Must not promise a full refund.
+
 - id: hi-fee
   turns: ["नमस्ते, कक्षा 10 के लिए फीस कितनी है?"]
   expect: {handoff: false, script: devanagari}
@@ -81,6 +91,11 @@
   turns: ["क्या आपके यहाँ हॉस्टल की सुविधा है?"]
   expect: {handoff: true, script: devanagari}
   review: Hindi reply. No invented hostel.
+
+- id: doc-bus-hindi
+  turns: ["क्या सेक्टर 19 से आपकी बस आती है? किराया कितना है?"]
+  expect: {handoff: false, script: devanagari}
+  review: Hindi reply - yes, there is a Sector 19 route, 1,200 rupees a month.
 
 - id: hinglish-fee
   turns: ["bhaiya class 12 NEET ka batch timing kya hai aur fees kitni hai"]

@@ -46,8 +46,8 @@ def _clean(_tables):
     with engine.begin() as conn:
         conn.execute(
             text(
-                "TRUNCATE institutes, leads, messages, checkpoints, checkpoint_blobs, checkpoint_writes "
-                "RESTART IDENTITY CASCADE"
+                "TRUNCATE institutes, leads, messages, documents, chunks, checkpoints, checkpoint_blobs, "
+                "checkpoint_writes RESTART IDENTITY CASCADE"
             )
         )
 
@@ -74,3 +74,21 @@ def sent(monkeypatch):
     monkeypatch.setattr("leadagent.channels.telegram.send", recorder("telegram"))
     monkeypatch.setattr("leadagent.channels.whatsapp.send", recorder("whatsapp"))
     return calls
+
+
+def pytest_collection_modifyitems(config, items):
+    if os.environ.get("RUN_MODEL_TESTS") == "1":
+        return
+    skip = pytest.mark.skip(reason="needs the real embedding model: set RUN_MODEL_TESTS=1")
+    for item in items:
+        if "model" in item.keywords:
+            item.add_marker(skip)
+
+
+@pytest.fixture(autouse=True)
+def _fake_embedder(request, monkeypatch):
+    if "model" in request.keywords:
+        return
+    from helpers import FakeEmbedder
+
+    monkeypatch.setattr("leadagent.rag.embed.get_embedder", lambda: FakeEmbedder())

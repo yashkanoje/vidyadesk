@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import func, or_, select
 from sqlalchemy.dialects.postgresql import insert
 
-from leadagent.store.models import Institute, Lead, Message, utcnow
+from leadagent.store.models import Chunk, Document, Institute, Lead, Message, utcnow
 
 LEAD_FIELDS = ("name", "student_class", "course", "phone", "notes")
 
@@ -197,3 +197,55 @@ def digest_leads(session, institute_id, now):
     ).all()
     waiting = session.scalars(mine.where(Lead.stage == "handed_off")).all()
     return list(new), list(hot), list(waiting)
+
+
+def add_document(session, institute_id, filename):
+    document = Document(institute_id=institute_id, filename=filename, status="ready")
+    session.add(document)
+    session.flush()
+    return document
+
+
+def mark_document_failed(session, document, reason) -> None:
+    document.status = "failed"
+    document.error = reason
+
+
+def add_chunks(session, document, texts, vectors) -> None:
+    session.add_all(
+        Chunk(institute_id=document.institute_id, document_id=document.id, position=i, text=text, embedding=vector)
+        for i, (text, vector) in enumerate(zip(texts, vectors, strict=True))
+    )
+
+
+def documents_for(session, institute_id):
+    return list(session.scalars(select(Document).where(Document.institute_id == institute_id).order_by(Document.id)))
+
+
+def get_document(session, institute_id, document_id):
+    return session.scalars(
+        select(Document).where(Document.id == document_id, Document.institute_id == institute_id)
+    ).one_or_none()
+
+
+def documents_named(session, institute_id, filename):
+    return list(
+        session.scalars(select(Document).where(Document.institute_id == institute_id, Document.filename == filename))
+    )
+
+
+def delete_document(session, document) -> None:
+    session.delete(document)  # its passages go with it through ON DELETE CASCADE
+
+
+def nearest_chunks(session, institute_id, vector, k):
+    """This institute's k passages closest in meaning to the vector, as (chunk, cosine distance, filename)."""
+    distance = Chunk.embedding.cosine_distance(vector).label("distance")
+    rows = session.execute(
+        select(Chunk, distance, Document.filename)
+        .join(Document, Document.id == Chunk.document_id)
+        .where(Chunk.institute_id == institute_id, Document.status == "ready")
+        .order_by(distance)
+        .limit(k)
+    ).all()
+    return [(chunk, float(dist), filename) for chunk, dist, filename in rows]

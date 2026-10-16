@@ -135,3 +135,17 @@ def test_the_same_telegram_update_twice_gives_one_reply(session, sent, monkeypat
     client.post("/webhook/telegram/bright", json=UPDATE, headers=headers)
     client.post("/webhook/telegram/bright", json=UPDATE, headers=headers)
     assert [s[3] for s in sent] == ["Hello!"]
+
+
+def test_start_up_loads_the_embedding_model_once(monkeypatch):
+    calls = []
+    monkeypatch.setattr("leadagent.rag.embed.get_embedder", lambda: calls.append(1))
+
+    class Scheduler:
+        def shutdown(self, wait=False):
+            pass
+
+    monkeypatch.setattr("leadagent.jobs.start_scheduler", lambda: Scheduler())
+    with TestClient(app):
+        pass
+    assert calls == [1]

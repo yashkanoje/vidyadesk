@@ -189,7 +189,7 @@ def test_the_real_claude_binding_builds_and_asks_for_one_tool_call_at_a_time(mon
     finally:
         graph_module.get_graph.cache_clear()
     assert captured["model"].kwargs["tool_choice"] == {"type": "auto", "disable_parallel_tool_use": True}
-    assert {tool["name"] for tool in captured["model"].kwargs["tools"]} == {"save_lead", "set_interest", "handoff"}
+    assert {tool["name"] for tool in captured["model"].kwargs["tools"]} == {"save_lead", "set_interest", "handoff", "search_docs"}
     assert captured["cache_prompt"] is True
 
 

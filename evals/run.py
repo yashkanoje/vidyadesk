@@ -21,6 +21,7 @@ from leadagent.agent.graph import bound_model, build_graph, get_checkpointer, me
 from leadagent.agent.tools import TOOLS
 from leadagent.cli import add_institute
 from leadagent.facts import load_facts_file, render_facts
+from leadagent.rag.ingest import ingest
 from leadagent.settings import get_settings
 from leadagent.store import repo
 from leadagent.store.db import create_tables, session_scope
@@ -28,6 +29,7 @@ from leadagent.store.models import utcnow
 
 HERE = Path(__file__).resolve().parent
 FACTS_FILE = HERE.parent / "examples" / "brightpath.yaml"
+PROSPECTUS_FILE = HERE.parent / "examples" / "brightpath-prospectus.txt"
 
 
 def make_model(provider):
@@ -68,7 +70,7 @@ def run_conversation(graph, institute_id, conversation, pause=0.0):
     return replies, fields
 
 
-def failures_for(conversation, replies, fields, facts_text):
+def failures_for(conversation, replies, fields, facts_text, docs_text):
     expect = conversation.get("expect", {})
     failed = []
     if "handoff" in expect and (fields["stage"] == "handed_off") != expect["handoff"]:
@@ -81,7 +83,7 @@ def failures_for(conversation, replies, fields, facts_text):
     if "script" in expect and script_of(replies[-1]) != expect["script"]:
         failed.append(f"last reply script expected {expect['script']}, got {script_of(replies[-1])}")
     for reply in replies:
-        invented = unknown_numbers(reply, [facts_text, *conversation["turns"]])
+        invented = unknown_numbers(reply, [facts_text, docs_text, *conversation["turns"]])
         if invented:
             failed.append(f"numbers not in the facts or the user's messages: {invented}")
     return failed
@@ -99,6 +101,7 @@ def main() -> int:
     ]
     facts = load_facts_file(FACTS_FILE)
     facts_text = render_facts(facts)
+    docs_text = PROSPECTUS_FILE.read_text(encoding="utf-8")
     model, cache_prompt = make_model(args.provider)
     graph = build_graph(model, get_checkpointer(), cache_prompt=cache_prompt)
 
@@ -107,13 +110,14 @@ def main() -> int:
     with session_scope() as session:
         # No owner chat is set, so alerts are dropped instead of being sent to Telegram.
         institute_id = add_institute(session, slug=slug, name=facts.institute_name, facts=facts, telegram_token="unused").id
+        ingest(session, institute_id, PROSPECTUS_FILE)
 
     lines, failed_ids = [f"# Behaviour checks: {args.provider}, {datetime.now():%Y-%m-%d %H:%M}", ""], []
     try:
         for conversation in conversations:
             try:
                 replies, fields = run_conversation(graph, institute_id, conversation, args.pause)
-                failed = failures_for(conversation, replies, fields, facts_text)
+                failed = failures_for(conversation, replies, fields, facts_text, docs_text)
             except Exception as exc:
                 replies, fields, failed = [], {}, [f"crashed: {type(exc).__name__}: {exc}"]
             if failed:

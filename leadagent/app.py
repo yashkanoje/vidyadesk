@@ -9,6 +9,7 @@ from fastapi.responses import PlainTextResponse
 
 from leadagent.channels import telegram, whatsapp
 from leadagent.pipeline import process
+from leadagent.rag import embed
 from leadagent.settings import get_settings
 from leadagent.store import repo
 from leadagent.store.db import create_tables, session_scope
@@ -23,6 +24,7 @@ async def lifespan(app):
     from leadagent.jobs import start_scheduler
 
     create_tables()
+    embed.get_embedder()  # load the model now, not during a student's first question
     scheduler = start_scheduler()
     yield
     scheduler.shutdown(wait=False)

@@ -5,10 +5,12 @@ from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 
 from leadagent import notify
+from leadagent.rag.search import search
 from leadagent.store import repo
 from leadagent.store.db import session_scope
 
 GONE = "This lead no longer exists."
+NOTHING_FOUND = "Nothing found in the institute's documents."
 
 
 @contextmanager
@@ -71,4 +73,14 @@ def handoff(config: RunnableConfig, reason: str) -> str:
     return "Handed off. Tell the user that the institute's team will contact them soon."
 
 
-TOOLS = [save_lead, set_interest, handoff]
+@tool
+def search_docs(config: RunnableConfig, query: str) -> str:
+    """Search the institute's documents (prospectus, brochures, rules) for anything the institute information above does not answer. Write the query in English, whatever language the user wrote in."""
+    with session_scope() as session:
+        passages = search(session, config["configurable"]["institute_id"], query)
+    if not passages:
+        return NOTHING_FOUND
+    return "\n\n".join(f"Passage {i} (from {p.document}):\n{p.text}" for i, p in enumerate(passages, 1))
+
+
+TOOLS = [save_lead, set_interest, handoff, search_docs]

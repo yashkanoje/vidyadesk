@@ -4,8 +4,11 @@ An AI agent that answers student and parent enquiries for coaching institutes on
 and Telegram, records each one as a lead, and makes sure the owner follows up.
 
 **Status:** M1 (core agent) is built and its automatic tests pass. Behaviour checks on Gemini: 21 of 22. The live
-Telegram demo works. Still to do for M1: WhatsApp, the follow-up and summary jobs seen live, a native Odia read, and
-the behaviour checks on Claude (needs API credits). M2 (RAG) and M3 (dashboard) not started.
+Telegram demo works, and the follow-up and daily summary were both verified live on 15 Oct 2026. WhatsApp is parked:
+Meta reports the test number as banned (the webhook, app secret, token and subscription all work). Still to do for M1:
+a native Odia speaker's read, and the behaviour checks on Claude (the Anthropic account has no API credits). M2 (RAG)
+is built: the right passage is in the top 3 for 21 of 21 test questions, and 23 of 25 behaviour checks pass on Gemini.
+M3 (dashboard) not started.
 
 ## What it does
 
@@ -30,6 +33,20 @@ the behaviour checks on Claude (needs API credits). M2 (RAG) and M3 (dashboard) 
 Run exactly one process: no `--reload` and no `--workers`. The scheduler and the per-lead lock assume it.
 [docs/DEMO_CHECKLIST.md](docs/DEMO_CHECKLIST.md) has the steps for adding institutes and connecting Telegram and WhatsApp.
 
+## Documents (RAG)
+
+Each institute can add its prospectus, brochures or rules. The agent searches them when its structured facts
+do not answer a question.
+
+    .\.venv\Scripts\python -m leadagent.rag.ingest --institute brightpath examples/brightpath-prospectus.txt
+    .\.venv\Scripts\python -m leadagent.rag.ingest --institute brightpath --list
+    .\.venv\Scripts\python -m leadagent.rag.ingest --institute brightpath --delete <id>
+
+PDF, `.txt` and `.md`, up to 10 MB. Adding a file with the same name replaces the old version. Scanned PDFs
+are refused (no OCR yet). The embedding model runs locally and downloads once (about 70 MB) into `data/models/`.
+PostgreSQL needs the pgvector extension. Retrieval quality: `python -m evals.retrieval`.
+Real-model tests: set `RUN_MODEL_TESTS=1` before `pytest`.
+
 ## Layout
 
 | Path | Contents |
@@ -38,6 +55,7 @@ Run exactly one process: no `--reload` and no `--workers`. The scheduler and the
 | `leadagent/agent/` | The LangGraph graph, its tools and prompts |
 | `leadagent/store/` | Database models and queries |
 | `leadagent/jobs/` | Follow-up and daily summary jobs |
+| `leadagent/rag/` | Documents: reading, splitting into passages, embedding, search |
 | `leadagent/pipeline.py` | One incoming message from start to finish |
 | `leadagent/cli.py` | Add and configure institutes |
 | `evals/` | Behaviour checks against a real model: `python -m evals.run` |

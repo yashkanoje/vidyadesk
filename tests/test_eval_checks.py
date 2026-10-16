@@ -1,4 +1,4 @@
-from evals.checks import numbers_in, script_of, unknown_numbers
+from evals.checks import numbers_in, passage_hit, script_of, suggest_floor, unknown_numbers
 
 FACTS_TEXT = "Fee: ₹68,000 per year. Address: Rourkela 769004. Phone: 0661-2400000"
 
@@ -35,3 +35,17 @@ def test_script_of():
     assert script_of("namaskar, fees kete?") == "latin"
     assert script_of("JEE की फीस ₹68,000 है") == "devanagari"
     assert script_of("123 ?!") == "none"
+
+
+def test_passage_hit_ignores_case():
+    assert passage_hit(["Buses run from Sector 19"], "sector 19")
+    assert not passage_hit(["Weekly tests"], "sector 19")
+
+
+def test_suggest_floor_separates_answerable_from_unanswerable():
+    assert suggest_floor([0.81, 0.77, 0.9], [0.55, 0.6]) == 0.77
+
+
+def test_suggest_floor_takes_the_lower_floor_on_a_tie():
+    # A lower floor lets the agent answer more; refusing an answerable question costs a handoff.
+    assert suggest_floor([0.7, 0.5], [0.6]) == 0.5

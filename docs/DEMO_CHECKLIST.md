@@ -39,6 +39,15 @@ if a label below does not match, look for the nearest equivalent.
 - [ ] One message each in Hindi, Hinglish, Odia, and Odia in Latin letters gets a reply in the same language.
 - [ ] The owner sends `/delete <id>`: the lead is gone from the next summary.
 
+## Documents
+
+1. `.\.venv\Scripts\python -m leadagent.rag.ingest --institute brightpath examples/brightpath-prospectus.txt`
+   Expected: `Added brightpath-prospectus.txt as document N: ready`.
+
+- [ ] "Do you have a scholarship test?" is answered from the prospectus (BrightPath Talent Search Exam).
+- [ ] "What is the bus fee from Sector 19?" gets 1,200 rupees a month.
+- [ ] "Do you have a hostel?" still gets a handoff: the prospectus does not mention one.
+
 ## WhatsApp checks
 
 Lessons from the first attempt (15 Oct 2026), which never got a message through:

@@ -47,7 +47,7 @@ def test_the_gemini_provider_builds_a_gemini_agent_without_prompt_caching(gemini
     model = captured["model"]
     assert type(model.bound).__name__ == "ChatGoogleGenerativeAI"
     assert model.bound.model.endswith("gemini-3.5-flash-lite")
-    assert tool_names(model) == {"save_lead", "set_interest", "handoff"}
+    assert tool_names(model) == {"save_lead", "set_interest", "handoff", "search_docs"}
     assert captured["cache_prompt"] is False  # the cached-block format is Anthropic's
 
 
