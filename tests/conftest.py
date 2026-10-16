@@ -94,3 +94,10 @@ def _fake_embedder(request, monkeypatch):
     from helpers import FakeEmbedder
 
     monkeypatch.setattr("leadagent.rag.embed.get_embedder", lambda: FakeEmbedder())
+
+
+@pytest.fixture(autouse=True)
+def _reset_login_throttle():
+    from leadagent.dashboard.routes import throttle
+
+    throttle.reset()

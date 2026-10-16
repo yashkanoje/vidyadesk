@@ -1,13 +1,16 @@
 import hmac
 import json
 import logging
+import secrets
 from contextlib import asynccontextmanager
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import PlainTextResponse
+from starlette.middleware.sessions import SessionMiddleware
 
 from leadagent.channels import telegram, whatsapp
+from leadagent.dashboard import router as dashboard_router
 from leadagent.pipeline import process
 from leadagent.rag import embed
 from leadagent.settings import get_settings
@@ -31,6 +34,19 @@ async def lifespan(app):
 
 
 app = FastAPI(lifespan=lifespan)
+_session_secret = get_settings().session_secret
+if not _session_secret:
+    # Logins still work, but everyone is logged out whenever the app restarts.
+    logging.getLogger(__name__).warning("SESSION_SECRET is not set; using a random one for this run")
+    _session_secret = secrets.token_urlsafe(32)
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=_session_secret,
+    same_site="strict",
+    https_only=get_settings().session_https_only,
+    max_age=7 * 24 * 3600,
+)
+app.include_router(dashboard_router)
 
 
 def _json(body: bytes):
