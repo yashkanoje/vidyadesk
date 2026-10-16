@@ -82,3 +82,16 @@ Lessons from the first attempt (15 Oct 2026), which never got a message through:
 
 - [ ] Leave a conversation unfinished for 2 hours during the day: one follow-up arrives, and no second one.
 - [ ] At 08:00 the owner gets the daily summary.
+
+## Dashboard
+
+1. Generate a secret once and put it in `.env` as `SESSION_SECRET`:
+   `.\.venv\Scripts\python -c "import secrets; print(secrets.token_urlsafe(32))"`. Restart the app.
+2. Create your admin account and an owner account with `add-user` (see the README).
+3. Open `<PUBLIC_BASE_URL>/dash` on a phone.
+
+- [ ] The owner logs in and sees only their institute's leads.
+- [ ] A lead's page shows the whole conversation; "Switch the assistant back on" works on a handed-off lead.
+- [ ] Uploading the prospectus on the Documents page shows "ready".
+- [ ] Changing a fee on the Facts page changes the assistant's answer to the next fee question.
+- [ ] Five wrong passwords lock that email out for 15 minutes.

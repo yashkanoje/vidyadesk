@@ -273,6 +273,8 @@ Server-rendered pages in the same FastAPI app. It must work on a phone.
 | Stats | Leads per day, share of hot leads, handoffs |
 | Institutes (admin only) | List, add, deactivate |
 
+Built in M3 (16 Oct 2026) as server-rendered pages under `/dash`; institute pages are `/dash/<slug>/…` and answer 404 to anyone but that institute's owner and the admin. Facts are edited as YAML text, validated on save.
+
 **Access**
 
 - An owner sees and changes only their own institute. Every query is filtered by the
@@ -323,6 +325,7 @@ last 24 hours, hot leads to call, and handed-off leads still waiting.
 - **Secrets** live in `.env`, which is never committed.
 - **Dashboard:** passwords hashed with bcrypt, a signed session cookie that is HTTPS-only
   and `SameSite=Strict`, all changes made by POST, and a limit on login attempts.
+  Failed logins: 5 per email per 15 minutes, kept in memory (one process). CSV exports neutralise spreadsheet formulas.
 - **Personal data:** many students are minors. Only the lead fields in Section 6 are
   stored. Owners can delete a lead and its messages. What Indian data-protection law
   requires here has not been checked (Section 16).
@@ -425,6 +428,9 @@ build: any shortcut taken is added here. It is the refinement backlog once M3 is
 | Dashboard | Owner alerts on WhatsApp | An owner will not use Telegram | Needs an approved utility template |
 | Dashboard | Replying to a lead from the dashboard | After M3 | Strong feature for a paid tier |
 | Dashboard | Two-factor login | Before holding many clients' data | |
+| Dashboard | Login throttle and sessions are in memory / in the cookie only; a restart clears the throttle | More than one process | Move the throttle to the database |
+| Dashboard | Facts are edited as YAML text rather than a form with fields | Owners find YAML hard | A field-per-item form generated from the Facts model |
+| Dashboard | No password reset by email; the admin runs set-password | More than a handful of owners | Email reset links |
 | Operations | Docker for the app | A second server or a teammate | |
 | Operations | More than one process | Load demands it | The in-process per-lead lock must become a database lock first |
 | Operations | Dedicated vector database | Millions of chunks | pgvector is enough well beyond this scale |
