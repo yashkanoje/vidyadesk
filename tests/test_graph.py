@@ -150,3 +150,26 @@ def test_message_text_reads_strings_and_content_blocks():
     assert message_text(AIMessage("plain")) == "plain"
     blocks = AIMessage(content=[{"type": "text", "text": "a"}, {"type": "tool_use", "id": "1", "name": "x", "input": {}}, {"type": "text", "text": "b"}])
     assert message_text(blocks) == "ab"
+
+
+def test_a_reply_in_the_wrong_script_is_rewritten_once(session):
+    lead = make_lead(session, make_institute(session), stage="collecting")
+    model = ScriptedModel(AIMessage("Yes, there is a bus from Sector 19."), AIMessage("हाँ, सेक्टर 19 से बस है।"))
+    result = run_turn(build_graph(model, get_checkpointer()), lead, "क्या सेक्टर 19 से बस है?")
+    assert message_text(result["messages"][-1]) == "हाँ, सेक्टर 19 से बस है।"
+    assert len(model.calls) == 2
+    assert "Devanagari" in model.calls[1][-1].content
+
+
+def test_a_reply_in_the_right_script_is_not_rewritten(session):
+    lead = make_lead(session, make_institute(session), stage="collecting")
+    model = ScriptedModel(AIMessage("The fee is 68,000 rupees a year."))
+    run_turn(build_graph(model, get_checkpointer()), lead, "What is the fee?")
+    assert len(model.calls) == 1
+
+
+def test_a_failed_rewrite_keeps_the_original_reply(session):
+    lead = make_lead(session, make_institute(session), stage="collecting")
+    model = ScriptedModel(AIMessage("Yes, there is a bus."), AIMessage(""))
+    result = run_turn(build_graph(model, get_checkpointer()), lead, "क्या बस है?")
+    assert message_text(result["messages"][-1]) == "Yes, there is a bus."

@@ -1,5 +1,7 @@
 import re
 
+from leadagent.language import script_of  # noqa: F401 (re-exported for evals/run.py and tests)
+
 _NUMBER = re.compile(r"\d[\d,]*\d|\d")  # \d also matches Devanagari and Odia digits
 
 
@@ -17,21 +19,6 @@ def unknown_numbers(reply, allowed_texts) -> list[int]:
     for text in allowed_texts:
         allowed |= numbers_in(text)
     return sorted(number for number in numbers_in(reply) if number >= 100 and number not in allowed)
-
-
-def script_of(text) -> str:
-    counts = {
-        "odia": sum("\u0b00" <= ch <= "\u0b7f" for ch in text),
-        "devanagari": sum("\u0900" <= ch <= "\u097f" for ch in text),
-        "latin": sum(ch.isascii() and ch.isalpha() for ch in text),
-    }
-    if not any(counts.values()):
-        return "none"
-    # A reply that mixes native script with English words (course names) counts as the native script.
-    for script in ("odia", "devanagari"):
-        if counts[script] >= 5:
-            return script
-    return max(counts, key=counts.get)
 
 
 def passage_hit(passages, phrase) -> bool:
