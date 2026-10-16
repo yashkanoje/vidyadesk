@@ -4,9 +4,11 @@ An AI agent that answers student and parent enquiries for coaching institutes on
 and Telegram, records each one as a lead, and makes sure the owner follows up.
 
 **Status:** M1 (core agent) is built and its automatic tests pass. Behaviour checks on Gemini: 21 of 22. The live
-Telegram demo works. Still to do for M1: WhatsApp, the follow-up and summary jobs seen live, a native Odia read, and
-the behaviour checks on Claude (needs API credits). M2 (RAG) is built on branch `m2-rag`: the right passage is in the
-top 3 for 21 of 21 test questions, and 23 of 25 behaviour checks pass on Gemini. M3 (dashboard) not started.
+Telegram demo works, and the follow-up and daily summary were both verified live on 15 Oct 2026. WhatsApp is parked:
+Meta reports the test number as banned (the webhook, app secret, token and subscription all work). Still to do for M1:
+a native Odia speaker's read, and the behaviour checks on Claude (the Anthropic account has no API credits). M2 (RAG)
+is built: the right passage is in the top 3 for 21 of 21 test questions, and 23 of 25 behaviour checks pass on Gemini.
+M3 (dashboard) not started.
 
 ## What it does
 
