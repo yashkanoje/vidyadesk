@@ -1,16 +1,18 @@
 import csv
 import io
 import logging
+import tempfile
 from datetime import timedelta
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Form, HTTPException, Request
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 
 from leadagent.actions import delete_lead_and_history
 from leadagent.auth import LoginThrottle, dummy_hash, password_matches
+from leadagent.rag.ingest import MAX_BYTES, IngestError, ingest
 from leadagent.store import repo
 from leadagent.store.db import session_scope
 from leadagent.store.models import utcnow
@@ -128,6 +130,64 @@ def institutes_page(request: Request):
     with session_scope() as session:
         _admin(session, request)
         return HTMLResponse("Institutes")
+
+
+def safe_filename(name):
+    """The bare file name of an upload, or None. Never a path, so nothing is written outside the temp folder."""
+    bare = PurePosixPath((name or "").replace("\\", "/")).name.strip()[:255]
+    return None if bare in ("", ".", "..") else bare
+
+
+@router.get("/{slug}/documents", response_class=HTMLResponse)
+def documents_page(request: Request, slug: str):
+    with session_scope() as session:
+        user = _user(session, request)
+        institute = _institute(session, user, slug)
+        return _render(
+            request,
+            "documents.html",
+            {"user": user, "institute": institute, "local": _local(institute),
+             "documents": repo.documents_for(session, institute.id)},
+        )
+
+
+@router.post("/{slug}/documents")
+def upload_document(request: Request, slug: str, file: UploadFile = File(...)):
+    with session_scope() as session:
+        institute = _institute(session, _user(session, request), slug)
+        name = safe_filename(file.filename)
+        data = file.file.read(MAX_BYTES + 1)
+        if name is None:
+            _flash(request, "Choose a file to upload.")
+        elif len(data) > MAX_BYTES:
+            _flash(request, f"{name} is larger than 10 MB")
+        else:
+            with tempfile.TemporaryDirectory() as folder:
+                path = Path(folder) / name
+                path.write_bytes(data)
+                try:
+                    document = ingest(session, institute.id, path)
+                    reason = f" ({document.error})" if document.error else ""
+                    _flash(request, f"Added {document.filename}: {document.status}{reason}")
+                except IngestError as exc:
+                    _flash(request, str(exc))
+                except Exception:
+                    session.rollback()  # the old version, if any, must survive a half-finished replace
+                    log.exception("upload failed for institute %s", institute.slug)
+                    _flash(request, f"Could not add {name}. Please try again.")
+        return RedirectResponse(f"/dash/{institute.slug}/documents", status_code=303)
+
+
+@router.post("/{slug}/documents/{document_id}/delete")
+def delete_document(request: Request, slug: str, document_id: int):
+    with session_scope() as session:
+        institute = _institute(session, _user(session, request), slug)
+        document = repo.get_document(session, institute.id, document_id)
+        if document is None:
+            raise HTTPException(404)
+        repo.delete_document(session, document)
+        _flash(request, f"{document.filename} and its passages are deleted.")
+        return RedirectResponse(f"/dash/{institute.slug}/documents", status_code=303)
 
 
 @router.get("/{slug}/leads", response_class=HTMLResponse)

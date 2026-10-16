@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Documents · {{ institute.name }}{% endblock %}
+{% block content %}
+<h1>Documents</h1>
+<p>The assistant searches these when the facts do not answer a question. PDF, .txt or .md, up to 10 MB.
+Adding a file with the same name replaces the old version. Scanned PDFs cannot be read yet.</p>
+<form method="post" action="/dash/{{ institute.slug }}/documents" enctype="multipart/form-data">
+  <input type="file" name="file" accept=".pdf,.txt,.md" required> <button>Upload</button>
+</form>
+<div class="scroll"><table>
+<tr><th>#</th><th>File</th><th>Status</th><th>Added</th><th></th></tr>
+{% for d in documents %}
+<tr>
+  <td>{{ d.id }}</td><td>{{ d.filename }}</td>
+  <td>{{ d.status }}{% if d.error %} ({{ d.error }}){% endif %}</td><td>{{ local(d.uploaded_at) }}</td>
+  <td><form class="inline" method="post" action="/dash/{{ institute.slug }}/documents/{{ d.id }}/delete" onsubmit="return confirm('Delete this document?')"><button>Delete</button></form></td>
+</tr>
+{% else %}
+<tr><td colspan="5">No documents yet.</td></tr>
+{% endfor %}
+</table></div>
+{% endblock %}
