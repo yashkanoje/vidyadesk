@@ -25,8 +25,12 @@ class IngestError(ValueError):
 
 def extract_text(path: Path) -> str:
     if path.suffix.lower() == ".pdf":
-        return "\n\n".join(page.extract_text() or "" for page in PdfReader(str(path)).pages)
-    return path.read_text(encoding="utf-8", errors="replace")
+        text = "\n\n".join(page.extract_text() or "" for page in PdfReader(str(path)).pages)
+    else:
+        data = path.read_bytes()
+        encoding = "utf-16" if data[:2] in (b"\xff\xfe", b"\xfe\xff") else "utf-8-sig"
+        text = data.decode(encoding, errors="replace")
+    return text
 
 
 def ingest(session, institute_id, path):
@@ -35,19 +39,22 @@ def ingest(session, institute_id, path):
         raise IngestError(f"{path.name}: only PDF, .txt and .md files are accepted")
     if path.stat().st_size > MAX_BYTES:
         raise IngestError(f"{path.name} is larger than 10 MB")
-    for old in repo.documents_named(session, institute_id, path.name):  # a new version replaces the old one
+    old_versions = repo.documents_named(session, institute_id, path.name)
+    error, passages = None, []
+    try:
+        passages = chunk_text(extract_text(path).replace("\x00", ""))  # PostgreSQL text cannot hold NUL
+    except Exception as exc:  # a damaged or password-protected PDF
+        error = f"could not read the file ({type(exc).__name__})"
+    if not error and not passages:
+        # shortcut: scanned PDFs are refused, add OCR when an institute's brochure is a scan (spec Section 15)
+        error = "no text found (a scanned PDF needs OCR, which is not supported yet)"
+    if error:  # the old version, if any, keeps working
+        document = repo.add_document(session, institute_id, path.name)
+        repo.mark_document_failed(session, document, error)
+        return document
+    for old in old_versions:  # a new version replaces the old one
         repo.delete_document(session, old)
     document = repo.add_document(session, institute_id, path.name)
-    try:
-        text = extract_text(path)
-    except Exception as exc:  # a damaged or password-protected PDF
-        repo.mark_document_failed(session, document, f"could not read the file ({type(exc).__name__})")
-        return document
-    passages = chunk_text(text)
-    if not passages:
-        # shortcut: scanned PDFs are refused, add OCR when an institute's brochure is a scan (spec Section 15)
-        repo.mark_document_failed(session, document, "no text found (a scanned PDF needs OCR, which is not supported yet)")
-        return document
     repo.add_chunks(session, document, passages, embed.get_embedder().passages(passages))
     return document
 

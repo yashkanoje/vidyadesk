@@ -113,3 +113,49 @@ def test_the_command_line_reports_problems(session, tmp_path, capsys):
     assert main(["--institute", "bright", "--delete", "999"]) == 1
     err = capsys.readouterr().err
     assert "No institute" in err and "missing.pdf" in err and "No document 999" in err
+
+
+def passages_of(session, document):
+    return [c.text for c in session.scalars(select(Chunk).where(Chunk.document_id == document.id))]
+
+
+def test_a_utf16_text_file_is_readable(session, tmp_path):
+    institute = make_institute(session)
+    path = tmp_path / "notes.txt"
+    path.write_bytes(b"\xff\xfe" + "Buses run from Sector 19.".encode("utf-16-le"))
+    document = ingest(session, institute.id, path)
+    session.commit()
+    assert document.status == "ready"
+    assert "Buses run from Sector 19" in " ".join(passages_of(session, document))
+
+
+def test_a_utf8_bom_is_not_kept_in_the_first_passage(session, tmp_path):
+    institute = make_institute(session)
+    path = tmp_path / "notes.txt"
+    path.write_bytes(b"\xef\xbb\xbf" + b"Refunds within 7 days.")
+    document = ingest(session, institute.id, path)
+    session.commit()
+    assert not passages_of(session, document)[0].startswith("\ufeff")
+
+
+def test_nul_characters_are_removed_before_storing(session, tmp_path, monkeypatch):
+    institute = make_institute(session)
+    monkeypatch.setattr("leadagent.rag.ingest.extract_text", lambda path: "Fee\x00s are\x00 low.")
+    path = tmp_path / "notes.txt"
+    path.write_text("x", encoding="utf-8")
+    document = ingest(session, institute.id, path)
+    session.commit()
+    assert passages_of(session, document) == ["Fees are low."]
+
+
+def test_a_failed_replacement_keeps_the_old_version(session, tmp_path):
+    institute = make_institute(session)
+    path = tmp_path / "prospectus.txt"
+    path.write_text("Old refund rule.", encoding="utf-8")
+    old = ingest(session, institute.id, path)
+    path.write_text("   ", encoding="utf-8")
+    new = ingest(session, institute.id, path)
+    session.commit()
+    assert (old.status, new.status) == ("ready", "failed")
+    assert passages_of(session, old) == ["Old refund rule."]
+    assert count(session, Document) == 2
