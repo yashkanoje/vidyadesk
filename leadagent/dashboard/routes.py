@@ -13,6 +13,7 @@ from fastapi.templating import Jinja2Templates
 
 from leadagent.actions import delete_lead_and_history
 from leadagent.auth import LoginThrottle, dummy_hash, password_matches
+from leadagent.cli import add_institute
 from leadagent.facts import FactsError, parse_facts
 from leadagent.rag.ingest import MAX_BYTES, IngestError, ingest
 from leadagent.store import repo
@@ -23,6 +24,7 @@ log = logging.getLogger(__name__)
 router = APIRouter(prefix="/dash")
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent / "templates"))
 throttle = LoginThrottle()
+EXAMPLE_FACTS = (Path(__file__).resolve().parents[2] / "examples" / "brightpath.yaml").read_text(encoding="utf-8")
 
 STAGES = ("new", "collecting", "qualified", "handed_off", "closed")
 INTERESTS = ("hot", "warm", "cold")
@@ -126,12 +128,57 @@ def logout(request: Request):
     return RedirectResponse("/dash/login", status_code=303)
 
 
-# Placeholder until Task 9 replaces it: they already apply the access rules.
+def _institutes_context(session, user, error=None, form=None):
+    return {
+        "user": user, "institute": None, "institutes": repo.all_institutes(session), "error": error,
+        "form": form or {"slug": "", "name": "", "timezone": "Asia/Kolkata", "facts_yaml": EXAMPLE_FACTS},
+    }
+
+
 @router.get("/admin/institutes", response_class=HTMLResponse)
 def institutes_page(request: Request):
     with session_scope() as session:
+        user = _admin(session, request)
+        return _render(request, "institutes.html", _institutes_context(session, user))
+
+
+@router.post("/admin/institutes", response_class=HTMLResponse)
+def create_institute(
+    request: Request,
+    slug: str = Form(...),
+    name: str = Form(...),
+    telegram_token: str = Form(...),
+    facts_yaml: str = Form(...),
+    timezone: str = Form("Asia/Kolkata"),
+):
+    with session_scope() as session:
+        user = _admin(session, request)
+        try:
+            facts = parse_facts(yaml.safe_load(facts_yaml))
+            add_institute(session, slug=slug.strip(), name=name.strip(), facts=facts,
+                          telegram_token=telegram_token.strip(), timezone=timezone.strip())
+        except yaml.YAMLError as exc:
+            error = f"Facts: this is not valid YAML: {exc}"
+        except (FactsError, ValueError) as exc:  # FactsError is a ValueError too; both messages are safe to show
+            error = str(exc)
+        else:
+            _flash(request, f"Added {slug.strip()}. Next: set-webhook, then the owner sends /whoami and you run set-owner.")
+            return RedirectResponse("/dash/admin/institutes", status_code=303)
+        session.rollback()
+        form = {"slug": slug, "name": name, "timezone": timezone, "facts_yaml": facts_yaml}  # never echo the token
+        return _render(request, "institutes.html", _institutes_context(session, user, error, form), status_code=400)
+
+
+@router.post("/admin/institutes/{slug}/active")
+def toggle_institute(request: Request, slug: str):
+    with session_scope() as session:
         _admin(session, request)
-        return HTMLResponse("Institutes")
+        institute = repo.institute_by_slug(session, slug)
+        if institute is None:
+            raise HTTPException(404)
+        institute.active = not institute.active
+        _flash(request, f"{institute.slug} is now {'on' if institute.active else 'off'}.")
+        return RedirectResponse("/dash/admin/institutes", status_code=303)
 
 
 def safe_filename(name):

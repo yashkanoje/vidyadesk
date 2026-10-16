@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Institutes{% endblock %}
+{% block content %}
+<h1>Institutes</h1>
+<div class="scroll"><table>
+<tr><th>#</th><th>Slug</th><th>Name</th><th>Status</th><th>Owner chat</th><th>WhatsApp</th><th></th></tr>
+{% for i in institutes %}
+<tr>
+  <td>{{ i.id }}</td><td><a href="/dash/{{ i.slug }}/leads">{{ i.slug }}</a></td><td>{{ i.name }}</td>
+  <td>{{ "on" if i.active else "off" }}</td><td>{{ "set" if i.owner_telegram_chat_id else "not set" }}</td>
+  <td>{{ "attached" if i.whatsapp_phone_number_id else "-" }}</td>
+  <td><form class="inline" method="post" action="/dash/admin/institutes/{{ i.slug }}/active"><button>{{ "Switch off" if i.active else "Switch on" }}</button></form></td>
+</tr>
+{% endfor %}
+</table></div>
+<h2>Add an institute</h2>
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+<form method="post" action="/dash/admin/institutes">
+  <p><label>Slug (lower-case letters, digits, hyphens)<br><input name="slug" value="{{ form.slug }}" required></label></p>
+  <p><label>Name<br><input name="name" value="{{ form.name }}" required></label></p>
+  <p><label>Timezone<br><input name="timezone" value="{{ form.timezone }}"></label></p>
+  <p><label>Telegram bot token<br><input type="password" name="telegram_token" required autocomplete="off"></label></p>
+  <p><label>Facts<br><textarea name="facts_yaml" spellcheck="false">{{ form.facts_yaml }}</textarea></label></p>
+  <p><button>Add institute</button></p>
+</form>
+{% endblock %}

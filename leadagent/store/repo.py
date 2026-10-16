@@ -312,3 +312,7 @@ def lead_stats(session, institute_id, timezone_name, now, days=14):
         "hot_share": round(100 * hot / len(leads)) if leads else 0,
         "waiting": waiting,
     }
+
+
+def all_institutes(session):
+    return list(session.scalars(select(Institute).order_by(Institute.id)))
