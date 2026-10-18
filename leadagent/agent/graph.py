@@ -4,7 +4,7 @@ from functools import lru_cache
 
 from langchain_anthropic import ChatAnthropic
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.messages import AIMessage, SystemMessage, ToolMessage, trim_messages
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage, trim_messages
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.postgres import PostgresSaver
 from langgraph.graph import END, START, MessagesState, StateGraph
@@ -16,6 +16,7 @@ from pydantic import ValidationError
 from leadagent import notify
 from leadagent.agent.prompts import system_prompt
 from leadagent.agent.tools import TOOLS
+from leadagent.language import REWRITE_INSTRUCTION, rewrite_script
 from leadagent.settings import get_settings
 from leadagent.store import repo
 from leadagent.store.db import session_scope
@@ -125,7 +126,16 @@ def make_agent(model, cache_prompt):
             system = SystemMessage(content=[{"type": "text", "text": prompt, "cache_control": {"type": "ephemeral"}}])
         else:
             system = SystemMessage(content=prompt)
-        return {"messages": [model.invoke([system, *history], config)]}
+        reply = model.invoke([system, *history], config)
+        user_text = next((m.content for m in reversed(history) if isinstance(m, HumanMessage)), "")
+        wanted = None if reply.tool_calls else rewrite_script(str(user_text), message_text(reply))
+        if wanted:
+            # One retry when the reply's script differs from the user's; the instruction is not saved to the chat.
+            rewrite = model.invoke([system, *history, reply, HumanMessage(REWRITE_INSTRUCTION[wanted])], config)
+            text = message_text(rewrite).strip()
+            if text and not rewrite.tool_calls:
+                reply = AIMessage(content=text)
+        return {"messages": [reply]}
 
     return agent
 

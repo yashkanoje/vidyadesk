@@ -23,6 +23,8 @@ os.environ["FERNET_KEY"] = Fernet.generate_key().decode()
 os.environ["WHATSAPP_APP_SECRET"] = "app-secret"
 os.environ["WHATSAPP_VERIFY_TOKEN"] = "verify-me"
 os.environ["LANGSMITH_TRACING"] = "false"
+os.environ["SESSION_SECRET"] = "test-session-secret"
+os.environ["SESSION_HTTPS_ONLY"] = "false"  # the test client talks plain http
 
 
 import pytest
@@ -46,7 +48,7 @@ def _clean(_tables):
     with engine.begin() as conn:
         conn.execute(
             text(
-                "TRUNCATE institutes, leads, messages, documents, chunks, checkpoints, checkpoint_blobs, "
+                "TRUNCATE institutes, users, leads, messages, documents, chunks, checkpoints, checkpoint_blobs, "
                 "checkpoint_writes RESTART IDENTITY CASCADE"
             )
         )
@@ -92,3 +94,10 @@ def _fake_embedder(request, monkeypatch):
     from helpers import FakeEmbedder
 
     monkeypatch.setattr("leadagent.rag.embed.get_embedder", lambda: FakeEmbedder())
+
+
+@pytest.fixture(autouse=True)
+def _reset_login_throttle():
+    from leadagent.dashboard.routes import throttle
+
+    throttle.reset()

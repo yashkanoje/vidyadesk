@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Lead agent{% endblock %}</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; color: #1d2433; background: #f6f7f9; }
+  header { background: #1d2433; color: #fff; padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+  header a { color: #fff; text-decoration: none; }
+  header form { margin-left: auto; }
+  main { padding: 16px; max-width: 1000px; margin: 0 auto; }
+  table { border-collapse: collapse; width: 100%; background: #fff; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #e3e6ea; vertical-align: top; }
+  .scroll { overflow-x: auto; }
+  .flash { background: #e8f4ea; padding: 8px 12px; border-radius: 4px; }
+  .error { background: #fbeaea; padding: 8px 12px; border-radius: 4px; white-space: pre-wrap; }
+  .msg { background: #fff; padding: 8px 12px; margin: 6px 0; border-radius: 6px; white-space: pre-wrap; }
+  .msg.user { border-left: 4px solid #3b6fd8; }
+  .msg.assistant { border-left: 4px solid #2e9e5b; }
+  .msg.owner { border-left: 4px solid #b26b00; }
+  textarea { width: 100%; min-height: 360px; font-family: monospace; box-sizing: border-box; }
+  input, select, button { font-size: 1rem; padding: 4px 8px; }
+  .bar { display: inline-block; background: #3b6fd8; height: 12px; }
+  .inline { display: inline; }
+</style>
+</head>
+<body>
+{% if user %}
+<header>
+  {% if institute %}
+  <strong>{{ institute.name }}</strong>
+  <a href="/dash/{{ institute.slug }}/leads">Leads</a>
+  <a href="/dash/{{ institute.slug }}/documents">Documents</a>
+  <a href="/dash/{{ institute.slug }}/facts">Facts</a>
+  <a href="/dash/{{ institute.slug }}/stats">Stats</a>
+  {% endif %}
+  {% if user.role == "admin" %}<a href="/dash/admin/institutes">Institutes</a>{% endif %}
+  <form method="post" action="/dash/logout"><button>Log out</button></form>
+</header>
+{% endif %}
+<main>
+{% if flash %}<p class="flash">{{ flash }}</p>{% endif %}
+{% block content %}{% endblock %}
+</main>
+</body>
+</html>

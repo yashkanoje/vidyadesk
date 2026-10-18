@@ -5,6 +5,7 @@
     python -m leadagent.cli set-owner --slug brightpath --chat-id 123456789
     python -m leadagent.cli set-webhook --slug brightpath
     python -m leadagent.cli set-whatsapp --slug brightpath --number-id 123456789012345
+    python -m leadagent.cli add-user --email owner@example.com --role owner --slug brightpath
 """
 import argparse
 import getpass
@@ -15,11 +16,11 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import httpx
 
-from leadagent.agent.graph import get_checkpointer
+from leadagent.actions import delete_lead_and_history
+from leadagent.auth import PasswordError, hash_password
 from leadagent.channels import telegram
 from leadagent.crypto import encrypt
 from leadagent.facts import Facts, FactsError, load_facts_file
-from leadagent.locks import lock_for
 from leadagent.settings import get_settings
 from leadagent.store import repo
 from leadagent.store.db import create_tables, session_scope
@@ -33,11 +34,16 @@ def _existing(session, slug) -> Institute:
     return institute
 
 
+RESERVED_SLUGS = {"admin", "login", "logout"}  # dashboard routes live beside institute slugs
+
+
 def add_institute(
     session, *, slug, name, facts: Facts, telegram_token, timezone="Asia/Kolkata", whatsapp_number_id=None, whatsapp_token=None
 ) -> Institute:
     if not re.fullmatch(r"[a-z0-9-]{1,64}", slug):
         raise ValueError("slug must be 1 to 64 lowercase letters, digits or hyphens")
+    if slug in RESERVED_SLUGS:
+        raise ValueError(f"{slug!r} is reserved for the dashboard; choose another slug")
     try:
         ZoneInfo(timezone)
     except (ZoneInfoNotFoundError, ValueError):
@@ -74,10 +80,7 @@ def set_owner(session, slug, chat_id) -> Institute:
     # message made them a lead. Remove it, or the owner gets their own follow-up and shows up in the summary.
     lead = repo.find_lead(session, institute.id, "telegram", str(chat_id))
     if lead is not None:
-        with lock_for(lead.id):
-            repo.delete_lead(session, lead)
-            session.flush()
-            get_checkpointer().delete_thread(str(lead.id))
+        delete_lead_and_history(session, lead)
     return institute
 
 
@@ -95,6 +98,27 @@ def set_whatsapp(session, slug, number_id, token) -> Institute:
     institute.whatsapp_phone_number_id = number_id
     institute.whatsapp_token_enc = encrypt(token)
     return institute
+
+
+def add_user(session, *, email, password, role, slug=None):
+    if role not in ("admin", "owner"):
+        raise ValueError("role must be admin or owner")
+    institute_id = None
+    if role == "owner":
+        if not slug:
+            raise ValueError("an owner needs an institute (--slug)")
+        institute_id = _existing(session, slug).id
+    if repo.user_by_email(session, email) is not None:
+        raise ValueError(f"A user with email {email.strip().lower()!r} already exists")
+    return repo.add_user(session, email, hash_password(password), role, institute_id)
+
+
+def set_password(session, email, password):
+    user = repo.user_by_email(session, email)
+    if user is None:
+        raise ValueError(f"No user with email {email.strip().lower()!r}")
+    user.password_hash = hash_password(password)
+    return user
 
 
 def main(argv=None) -> int:
@@ -119,6 +143,12 @@ def main(argv=None) -> int:
     whatsapp.add_argument("--number-id", required=True)
     webhook = commands.add_parser("set-webhook")
     webhook.add_argument("--slug", required=True)
+    user = commands.add_parser("add-user")
+    user.add_argument("--email", required=True)
+    user.add_argument("--role", choices=["admin", "owner"], required=True)
+    user.add_argument("--slug", help="the owner's institute")
+    password = commands.add_parser("set-password")
+    password.add_argument("--email", required=True)
     args = parser.parse_args(argv)
 
     try:
@@ -160,6 +190,16 @@ def main(argv=None) -> int:
                     raise ValueError("set PUBLIC_BASE_URL in .env to the public https address first")
                 telegram.set_webhook(_existing(session, args.slug), base_url)
                 print("Telegram webhook set.")
+            elif args.command in ("add-user", "set-password"):
+                first = getpass.getpass("Password: ")
+                if getpass.getpass("Password again: ") != first:
+                    raise ValueError("the two passwords differ")
+                if args.command == "add-user":
+                    created = add_user(session, email=args.email, password=first, role=args.role, slug=args.slug)
+                    print(f"Added {created.role} {created.email}.")
+                else:
+                    set_password(session, args.email, first)
+                    print("Password changed.")
     except (ValueError, FactsError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1

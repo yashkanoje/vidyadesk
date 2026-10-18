@@ -273,6 +273,8 @@ Server-rendered pages in the same FastAPI app. It must work on a phone.
 | Stats | Leads per day, share of hot leads, handoffs |
 | Institutes (admin only) | List, add, deactivate |
 
+Built in M3 (16 Oct 2026) as server-rendered pages under `/dash`; institute pages are `/dash/<slug>/…` and answer 404 to anyone but that institute's owner and the admin. Facts are edited as YAML text, validated on save.
+
 **Access**
 
 - An owner sees and changes only their own institute. Every query is filtered by the
@@ -323,6 +325,7 @@ last 24 hours, hot leads to call, and handed-off leads still waiting.
 - **Secrets** live in `.env`, which is never committed.
 - **Dashboard:** passwords hashed with bcrypt, a signed session cookie that is HTTPS-only
   and `SameSite=Strict`, all changes made by POST, and a limit on login attempts.
+  Failed logins: 5 per email per 15 minutes, kept in memory (one process). CSV exports neutralise spreadsheet formulas.
 - **Personal data:** many students are minors. Only the lead fields in Section 6 are
   stored. Owners can delete a lead and its messages. What Indian data-protection law
   requires here has not been checked (Section 16).
@@ -419,12 +422,15 @@ build: any shortcut taken is added here. It is the refinement backlog once M3 is
 | RAG | The original uploaded files are not kept; only their passages are | Re-splitting documents with new settings | Store originals under `data/uploads/<institute>/` |
 | RAG | A re-uploaded file is matched by name only | An owner renames a file between versions | List shows both; delete the old one |
 | RAG | Query wording: the agent writes the English query itself | Retrieval misses on Odia or Hindi questions in practice | Add a few Odia and Hindi questions to `evals/retrieval.yaml` |
-| Agent | Reply script does not always match the user's (Devanagari answered in Latin letters; Latin-letter Odia answered in Odia script) | Before an Odia- or Hindi-heavy institute | One general prompt rule, then re-run the language checks |
+| Agent | Reply script does not always match the user's (Devanagari answered in Latin letters; Latin-letter Odia answered in Odia script) | Before an Odia- or Hindi-heavy institute | Fixed 16 Oct 2026 by a rewrite check: the agent asks the model once to rewrite a reply whose script differs from the user's message; the re-run showed no wrong-script reply. Still open: a Hinglish question can get a plain English reply, which the script check cannot detect |
 | Dashboard | Separate React frontend | The pages need heavy interactivity | Not needed for these pages |
 | Dashboard | Self-signup, billing | 10 or more clients | |
 | Dashboard | Owner alerts on WhatsApp | An owner will not use Telegram | Needs an approved utility template |
 | Dashboard | Replying to a lead from the dashboard | After M3 | Strong feature for a paid tier |
 | Dashboard | Two-factor login | Before holding many clients' data | |
+| Dashboard | Login throttle and sessions are in memory / in the cookie only; a restart clears the throttle | More than one process | Move the throttle to the database |
+| Dashboard | Facts are edited as YAML text rather than a form with fields | Owners find YAML hard | A field-per-item form generated from the Facts model |
+| Dashboard | No password reset by email; the admin runs set-password | More than a handful of owners | Email reset links |
 | Operations | Docker for the app | A second server or a teammate | |
 | Operations | More than one process | Load demands it | The in-process per-lead lock must become a database lock first |
 | Operations | Dedicated vector database | Millions of chunks | pgvector is enough well beyond this scale |
@@ -467,6 +473,21 @@ fixed, each with a test (`tests/test_review_fixes.py`). The smaller findings bel
 | Command line | A mistyped facts path gives a traceback; an empty Telegram token is accepted | Next time the command line is touched | Catch both |
 | Operations | Printing the settings object (for example in an error) shows the database password and API keys | Before server deployment | Store secrets as pydantic `SecretStr` |
 | Tests | Weak spots: one delivery test never calls `deliver`; one isolation test would pass if the tool always failed; no tests at the exact 2 h, 20 h, 09:00 and 21:00 edges; no test that tokens stay out of logs; `cli.main()` and app start-up are untested | Before M2 | |
+| Dashboard | Sessions are signed cookies with no server-side store: logout and set-password do not end other sessions, which stay valid up to 7 days | Before more than a handful of owners, or if a laptop is lost | A server-side session table, or a per-user session version checked on every request |
+| Dashboard | Failed-login limit is per email, so anyone who knows an owner's email can lock them out for 15 minutes; concurrent guesses can slip a few past the limit | A targeted owner | Per-IP limits plus an atomic counter in the database |
+| Dashboard | Upload size is checked after the form is parsed, and the form is parsed before the login check | Public deployment | A request-body limit (~11 MB) in Caddy (`request_body max_size`) |
+| Dashboard | The stats page shows leads waiting for the team now, not handoffs per day | Owners want handoff trends | Count handoffs per day from a handoff timestamp |
+| Agent | The script check follows the last message only: a short "ok" in a Hindi chat makes the agent rewrite a Devanagari reply in Latin letters (one extra model call) | Users complain | Look at the last few user messages, not one |
+| Dashboard | Bad address-bar input gives a 500 instead of a 404: a lead number above the database's integer limit, or a huge `days` filter | Next dashboard pass | Bound both parameters |
+| Dashboard | "Switch the assistant back on" by a direct POST also reopens a closed or new lead (the button is disabled; Telegram `/resume` behaves the same) | Owners close leads on purpose | Allow resume only from handed-off |
+| Dashboard | CSV export guards `= + - @` but not a leading tab or carriage return; phone numbers starting with `+` get a leading `'` | A sheet is shared outside the institute | Add the two characters; leave phones unguarded if digits-only |
+| Dashboard | Admin's add-institute form accepts a blank Telegram token or name; two admins adding the same slug at once get a 500 | More than one admin | Refuse blanks; catch the unique-constraint error |
+| Dashboard | Small rough edges: the first unknown-email login is slower once (dummy hash made on first use); an owner whose institute is missing gets a 500 at login; the login redirect carries a JSON body; the stats bar stops growing at 25 leads a day; owners see PyYAML's error wording; the example facts are read when the app starts, so a missing `examples/brightpath.yaml` stops the app; Windows device names such as `CON` are not refused as upload names | Next dashboard pass | Fix one by one; none leaks data |
+| Dashboard | The login throttle prunes stale emails only past 10,000 entries, so many fresh emails within 15 minutes still add entries (each costs a password hash) | Public deployment | Move the throttle to the database (row above) |
+| Data | `users.role` is checked by a database constraint, but "an owner has an institute, an admin has none" is enforced only by the command line; no index on `users.institute_id`; an email over 254 characters gives a traceback in `add-user` | More owners | Add the constraint and index; catch the long email |
+| Evals | `evals.retrieval` prints the ingest status but does not stop when it is not `ready`; the PDF copy uses a Latin-1 font, so a ₹ in the prospectus would break it | The prospectus changes | Assert `ready`; embed a Unicode font |
+| Evals | Answerable and unanswerable similarity scores overlap (16 Oct 2026: lowest answerable 0.5851 txt / 0.5969 PDF, highest unanswerable 0.5991 / 0.6157), so the floor cannot keep every unanswerable question out; the model's handoff does the rest | Before relying on retrieval alone | Re-ranker, or a second check that the passage answers the question |
+| Tests | M3 gaps: no test that the rewrite instruction stays out of the saved chat or that a tool-call reply is never rewritten; the upload rollback branch; a bad add-institute form re-render not echoing the token; switching an unknown slug; the cookie's `secure` flag; per-day rows on the stats page; `make_user` does not lower-case the email | Next test pass | Add them |
 
 ## 16. Not yet verified
 
@@ -476,7 +497,7 @@ These were assumed during design. Each is checked at the point shown.
 |---|---|
 | Claude Haiku 4.5 writes natural Odia, including Odia in Latin script. **Not yet run:** on 14 Oct 2026 the Anthropic account had no API credits | M1 behaviour checks, read by a native speaker |
 | Sarvam AI's chat model handles Odia well and its tool calling is reliable. Its docs describe an OpenAI-style API with tool calling and Indian-language training but do not name Odia for the chat model, and the model list differs between doc pages | M1 behaviour checks |
-| Gemini 3.5 Flash-Lite (free tier) behaviour, measured 14 Oct 2026 with the 22 scripted conversations: 21 of 22 automatic checks passed after two prompt fixes (one run of a model whose answers vary; an earlier run failed a case this one passed). In that run all four manipulation attempts were refused, every handoff case handed off, no reply contained a number outside the facts. Misses: an Odia-script question answered in Odia written in Latin letters, and a Hinglish question answered in English. Odia wording not yet read by a native speaker. M2 re-run with the prospectus (16 Oct 2026, one run): 23 of 25 passed, including the three document checks and the hostel handoff; both misses were the reply's script (see Section 15). Replies take about 3 s; `gemini-3.8-flash` was overloaded on the free tier and `gemini-2.5-flash` is closed to new users | Re-run `python -m evals.run --provider gemini --pause 12` after any prompt change |
+| Gemini 3.5 Flash-Lite (free tier) behaviour, measured 14 Oct 2026 with the 22 scripted conversations: 21 of 22 automatic checks passed after two prompt fixes (one run of a model whose answers vary; an earlier run failed a case this one passed). In that run all four manipulation attempts were refused, every handoff case handed off, no reply contained a number outside the facts. Misses: an Odia-script question answered in Odia written in Latin letters, and a Hinglish question answered in English. Odia wording not yet read by a native speaker. M2 re-run with the prospectus (16 Oct 2026, one run): 23 of 25 passed, including the three document checks and the hostel handoff; both misses were the reply's script (see Section 15). Re-run after the script rewrite check and the canteen case (16 Oct 2026, one run): 26 of 26 passed; on reading, the Hindi, Odia-script and Latin-letter Odia replies came out in the right script, the canteen case handed off without inventing a canteen, and no reply invented a fact, but the Hinglish fee question was again answered in plain English (Latin letters, so the script check cannot see it) while the other Hinglish case was answered in Hinglish. Replies take about 3 s; `gemini-3.8-flash` was overloaded on the free tier and `gemini-2.5-flash` is closed to new users | Re-run `python -m evals.run --provider gemini --pause 12` after any prompt change |
 | Meta's WhatsApp test number: free, no business verification, a few recipient numbers. **Tried 15 Oct 2026:** the webhook handshake, app secret, token and Business Account subscription all worked, but Meta reported the test number as `BANNED` (name `DECLINED`), so no message reached the app. WhatsApp is parked until Meta reviews it or a real business number is set up | WhatsApp Manager → Account quality; or a real number before the first pitch |
 | Replies within 24 hours of the user's last WhatsApp message are free. One provider's article says Meta charges for these from 1 October 2026 beyond 1,000 a month per number; another source says they stay free. Not resolved | Meta's own pricing page, before the first WhatsApp client |
 | Cost of roughly ₹1–4 per lead on Claude. Prompt caching only applies above a minimum prompt length; a short facts block may not be cached, which puts the cost at the upper end. Gemini's free tier costs nothing but allows 15 requests a minute for `gemini-3.5-flash-lite` (measured 14 Oct 2026), enough for tests and a demo, not for an institute | Measured token use on a paid model |
