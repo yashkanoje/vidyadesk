@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intro animation preview v2</title>
+<style>
+  :root { --bg: #fbf8f3; --ink: #2b2118; --muted: #8a7766; --accent: #c2410c; --soft: #ffe8cc; --card: #fff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #efe7dc; font-family: Inter, system-ui, sans-serif; color: var(--ink); display: flex; flex-direction: column; align-items: center; padding: 20px; }
+  h2 { margin: 0 0 4px; font-size: 18px; } p.note { margin: 0 0 16px; color: var(--muted); font-size: 13px; text-align: center; max-width: 520px; }
+  .stage { width: 340px; height: 640px; background: var(--bg); border-radius: 36px; box-shadow: 0 20px 60px rgba(60,40,20,.25); position: relative; overflow: hidden; }
+  .controls { margin-top: 14px; } .controls button { font: inherit; padding: 8px 16px; border-radius: 99px; border: 0; background: var(--accent); color: #fff; cursor: pointer; }
+  .skip { position: absolute; top: 16px; right: 18px; font-size: 12px; color: var(--muted); z-index: 10; }
+
+  /* Welcome scene */
+  .intro { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 30px; text-align: center; animation: leave .6s 5.2s forwards; }
+  .glow { position: absolute; width: 260px; height: 260px; border-radius: 50%; background: radial-gradient(circle, rgba(255,186,120,.45), rgba(251,248,243,0) 70%); top: 120px; opacity: 0; animation: fadeIn 1.2s .2s forwards, breathe 3s 1.4s infinite; }
+  .mark { position: relative; width: 84px; height: 84px; }
+  .mark circle { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; stroke-dasharray: 240; stroke-dashoffset: 240; animation: draw 1s .2s ease-out forwards; }
+  .mark path { fill: var(--accent); opacity: 0; transform-origin: 42px 42px; transform: scale(.5); animation: popIn .5s .9s forwards; }
+  .hello { margin-top: 22px; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); opacity: 0; animation: up .5s 1.2s forwards; }
+  .name { margin-top: 6px; font-size: 26px; font-weight: 800; opacity: 0; animation: up .6s 1.4s forwards; }
+  .quote { margin-top: 34px; font-family: Georgia, "Times New Roman", serif; font-size: 18px; line-height: 1.5; font-style: italic; color: #4a3a2c; }
+  .quote .w { opacity: 0; display: inline-block; transform: translateY(6px); filter: blur(4px); }
+  .by { margin-top: 12px; font-size: 13px; color: var(--accent); font-weight: 600; opacity: 0; }
+
+  /* Dashboard scene */
+  .dash { position: absolute; inset: 0; padding: 18px 16px; opacity: 0; animation: fadeIn .5s 5.5s forwards; }
+  .top { display: flex; justify-content: space-between; align-items: center; margin: 22px 4px 16px; }
+  .inst { font-weight: 800; font-size: 18px; } .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--soft); color: var(--accent); font-weight: 700; display: grid; place-items: center; font-size: 13px; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .stat { background: var(--card); border-radius: 14px; padding: 12px 10px; box-shadow: 0 1px 3px rgba(60,40,20,.08); color: var(--muted); font-size: 12px; opacity: 0; transform: translateY(10px); }
+  .stat:nth-child(1) { animation: rise .4s 5.7s forwards; } .stat:nth-child(2) { animation: rise .4s 5.8s forwards; } .stat:nth-child(3) { animation: rise .4s 5.9s forwards; }
+  .stat b { display: block; font-size: 24px; color: var(--ink); }
+  .sec { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #a8937d; margin: 18px 4px 8px; opacity: 0; animation: fadeIn .3s 6.0s forwards; }
+  .row { display: flex; align-items: center; gap: 10px; background: var(--card); border-radius: 14px; padding: 12px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(60,40,20,.08); opacity: 0; transform: translateY(10px); }
+  .row:nth-of-type(1) { animation: rise .4s 6.1s forwards; }
+  .r1 { animation: rise .4s 6.1s forwards; } .r2 { animation: rise .4s 6.25s forwards; } .r3 { animation: rise .4s 6.4s forwards; }
+  .ini { width: 32px; height: 32px; border-radius: 50%; background: var(--soft); color: var(--accent); font-weight: 700; display: grid; place-items: center; flex: none; font-size: 12px; }
+  .who { flex: 1; } .who b { display: block; font-size: 14px; } .who span { font-size: 12px; color: var(--muted); }
+  .pill { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 99px; }
+  .hot { background: #ffe4e1; color: #c0262d; } .wait { background: #fff1c2; color: #8a5a00; } .new { background: #dff3ec; color: #0f766e; }
+  .nav { position: absolute; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-around; padding: 14px 0 22px; border-top: 1px solid #efe6da; font-size: 12px; color: var(--muted); background: var(--bg); }
+  .nav .on { color: var(--accent); font-weight: 700; }
+
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  @keyframes popIn { to { opacity: 1; transform: scale(1); } }
+  @keyframes up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  @keyframes word { to { opacity: 1; transform: none; filter: blur(0); } }
+  @keyframes fadeIn { to { opacity: 1; } }
+  @keyframes breathe { 50% { transform: scale(1.08); } }
+  @keyframes leave { to { opacity: 0; transform: translateY(-30px) scale(.96); } }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01s !important; animation-delay: 0s !important; } }
+</style>
+</head>
+<body>
+<h2>Intro animation v2: welcome + education quote</h2>
+<p class="note">About 6.5 seconds, first visit only. A saffron ring draws itself, "Welcome, BrightPath Classes", a quote appears word by word, then the dashboard builds itself.</p>
+
+<div class="stage" id="stage">
+  <span class="skip">Skip →</span>
+  <div class="intro">
+    <div class="glow"></div>
+    <svg class="mark" viewBox="0 0 84 84" aria-hidden="true">
+      <circle cx="42" cy="42" r="38"/>
+      <!-- an open book -->
+      <path d="M22 30c7-2 14-1 20 3v24c-6-4-13-5-20-3zM62 30c-7-2-14-1-20 3v24c6-4 13-5 20-3z"/>
+    </svg>
+    <div class="hello">Welcome</div>
+    <div class="name">BrightPath Classes</div>
+    <div class="quote" id="quote">Education is the most powerful weapon which you can use to change the world.</div>
+    <div class="by" id="by">Nelson Mandela</div>
+  </div>
+
+  <div class="dash">
+    <div class="top"><span class="inst">BrightPath Classes</span><span class="avatar">BP</span></div>
+    <div class="stats">
+      <div class="stat"><b data-to="6">0</b>new today</div>
+      <div class="stat"><b data-to="3">0</b>hot</div>
+      <div class="stat"><b data-to="1">0</b>waiting</div>
+    </div>
+    <div class="sec">Needs you</div>
+    <div class="row r1"><span class="ini">AK</span><span class="who"><b>Aman Kumar</b><span>Class 12 · NEET · asked for sir</span></span><span class="pill wait">Waiting</span></div>
+    <div class="sec">Latest leads</div>
+    <div class="row r2"><span class="ini">RS</span><span class="who"><b>Rahul Sharma</b><span>Class 11 · JEE</span></span><span class="pill hot">Hot</span></div>
+    <div class="row r3"><span class="ini">PM</span><span class="who"><b>Priya Mohanty</b><span>Class 10 · Foundation</span></span><span class="pill new">New</span></div>
+    <div class="nav"><span class="on">Leads</span><span>Docs</span><span>Facts</span><span>Stats</span></div>
+  </div>
+</div>
+
+<div class="controls"><button onclick="replay()">Replay</button></div>
+
+<script>
+  function start(root) {
+    const q = root.querySelector('#quote');
+    q.innerHTML = q.textContent.split(' ').map((w, i) =>
+      `<span class="w" style="animation: word .45s ${2.0 + i * 0.13}s forwards">${w}</span>`).join(' ');
+    const words = q.textContent.split(' ').length;
+    root.querySelector('#by').style.animation = `up .5s ${2.2 + words * 0.13}s forwards`;
+    setTimeout(() => root.querySelectorAll('[data-to]').forEach(el => {
+      const to = +el.dataset.to; let n = 0;
+      const t = setInterval(() => { el.textContent = ++n; if (n >= to) clearInterval(t); }, 90);
+    }), 5800);
+  }
+  let pristine = document.getElementById('stage').cloneNode(true);
+  function replay() {
+    const fresh = pristine.cloneNode(true);
+    document.getElementById('stage').replaceWith(fresh); start(fresh);
+  }
+  start(document.getElementById('stage'));
+</script>
+</body>
+</html>

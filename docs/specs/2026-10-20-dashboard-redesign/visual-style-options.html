@@ -1,0 +1,107 @@
+<h2>Which look feels right for the owner's dashboard?</h2>
+<p class="subtitle">Same screen (the owner's home on a phone), three styles. Click the one you like; tell me in the terminal what you'd change.</p>
+
+<style>
+  .phones { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
+  .phone { width: 290px; border-radius: 28px; padding: 14px 12px 18px; box-shadow: 0 10px 30px rgba(0,0,0,.18); font-family: Inter, system-ui, sans-serif; font-size: 13px; text-align: left; }
+  .phone .top { display: flex; justify-content: space-between; align-items: center; margin: 4px 4px 14px; }
+  .phone .inst { font-weight: 700; font-size: 15px; }
+  .phone .avatar { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 12px; }
+  .phone .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+  .phone .stat { border-radius: 12px; padding: 10px 8px; }
+  .phone .stat b { display: block; font-size: 20px; }
+  .phone .sec { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; margin: 10px 4px 6px; }
+  .phone .row { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 12px; margin-bottom: 6px; }
+  .phone .row .ini { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 12px; flex: none; }
+  .phone .row .who { flex: 1; min-width: 0; }
+  .phone .row .who b { display: block; }
+  .phone .row .who span { font-size: 11px; }
+  .phone .pill { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 99px; }
+  .phone .nav { display: flex; justify-content: space-around; margin-top: 14px; padding-top: 10px; font-size: 11px; }
+
+  /* A: light and calm */
+  .a { background: #ffffff; color: #0f172a; }
+  .a .avatar { background: #eef2ff; color: #4f46e5; }
+  .a .stat { background: #f8fafc; border: 1px solid #e2e8f0; color: #475569; }
+  .a .stat b { color: #0f172a; }
+  .a .sec { color: #94a3b8; }
+  .a .row { border: 1px solid #e2e8f0; }
+  .a .row .ini { background: #eef2ff; color: #4f46e5; }
+  .a .row .who span { color: #64748b; }
+  .a .hot { background: #fee2e2; color: #b91c1c; } .a .wait { background: #fef3c7; color: #92400e; } .a .new { background: #e0e7ff; color: #3730a3; }
+  .a .nav { border-top: 1px solid #e2e8f0; color: #64748b; } .a .nav .on { color: #4f46e5; font-weight: 700; }
+
+  /* B: dark and premium */
+  .b { background: #0b0d12; color: #e7e9ee; }
+  .b .avatar { background: #1f2330; color: #a78bfa; }
+  .b .stat { background: #12151c; border: 1px solid #222634; color: #8b90a0; }
+  .b .stat b { color: #fff; }
+  .b .sec { color: #6b7080; }
+  .b .row { background: #12151c; border: 1px solid #1d2130; }
+  .b .row .ini { background: #2a2140; color: #c4b5fd; }
+  .b .row .who span { color: #8b90a0; }
+  .b .hot { background: #3b1219; color: #fda4af; } .b .wait { background: #3a2a0d; color: #fcd34d; } .b .new { background: #241d44; color: #c4b5fd; }
+  .b .nav { border-top: 1px solid #1d2130; color: #6b7080; } .b .nav .on { color: #a78bfa; font-weight: 700; }
+
+  /* C: warm and friendly */
+  .c { background: #fbf8f3; color: #2b2118; }
+  .c .avatar { background: #ffe8cc; color: #c2410c; }
+  .c .stat { background: #ffffff; color: #7c6a58; box-shadow: 0 1px 3px rgba(60,40,20,.08); }
+  .c .stat b { color: #2b2118; }
+  .c .sec { color: #a8937d; }
+  .c .row { background: #ffffff; box-shadow: 0 1px 3px rgba(60,40,20,.08); }
+  .c .row .ini { background: #ffe8cc; color: #c2410c; }
+  .c .row .who span { color: #8a7766; }
+  .c .hot { background: #ffe4e1; color: #c0262d; } .c .wait { background: #fff1c2; color: #8a5a00; } .c .new { background: #dff3ec; color: #0f766e; }
+  .c .nav { border-top: 1px solid #efe6da; color: #8a7766; } .c .nav .on { color: #c2410c; font-weight: 700; }
+</style>
+
+<div class="cards phones">
+  <div class="card" data-choice="light" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="phone a">
+        <div class="top"><span class="inst">BrightPath Classes</span><span class="avatar">BP</span></div>
+        <div class="stats"><div class="stat"><b>5</b>new today</div><div class="stat"><b>2</b>hot</div><div class="stat"><b>1</b>waiting</div></div>
+        <div class="sec">Needs you</div>
+        <div class="row"><span class="ini">RS</span><span class="who"><b>Rahul Sharma</b><span>Class 11 · JEE · asked for sir</span></span><span class="pill wait">Waiting</span></div>
+        <div class="sec">Latest leads</div>
+        <div class="row"><span class="ini">PM</span><span class="who"><b>Priya Mohanty</b><span>Class 10 · Foundation</span></span><span class="pill hot">Hot</span></div>
+        <div class="row"><span class="ini">AK</span><span class="who"><b>Aman Kumar</b><span>Class 12 · NEET</span></span><span class="pill new">New</span></div>
+        <div class="nav"><span class="on">Leads</span><span>Docs</span><span>Facts</span><span>Stats</span></div>
+      </div>
+    </div>
+    <div class="card-body"><h3>A · Light and calm</h3><p>White, slate grey text, one indigo accent, thin borders. Like Stripe or Linear in light mode.</p></div>
+  </div>
+
+  <div class="card" data-choice="dark" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="phone b">
+        <div class="top"><span class="inst">BrightPath Classes</span><span class="avatar">BP</span></div>
+        <div class="stats"><div class="stat"><b>5</b>new today</div><div class="stat"><b>2</b>hot</div><div class="stat"><b>1</b>waiting</div></div>
+        <div class="sec">Needs you</div>
+        <div class="row"><span class="ini">RS</span><span class="who"><b>Rahul Sharma</b><span>Class 11 · JEE · asked for sir</span></span><span class="pill wait">Waiting</span></div>
+        <div class="sec">Latest leads</div>
+        <div class="row"><span class="ini">PM</span><span class="who"><b>Priya Mohanty</b><span>Class 10 · Foundation</span></span><span class="pill hot">Hot</span></div>
+        <div class="row"><span class="ini">AK</span><span class="who"><b>Aman Kumar</b><span>Class 12 · NEET</span></span><span class="pill new">New</span></div>
+        <div class="nav"><span class="on">Leads</span><span>Docs</span><span>Facts</span><span>Stats</span></div>
+      </div>
+    </div>
+    <div class="card-body"><h3>B · Dark and premium</h3><p>Near-black, soft violet accent, glowing badges. Like Linear or Vercel in dark mode.</p></div>
+  </div>
+
+  <div class="card" data-choice="warm" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="phone c">
+        <div class="top"><span class="inst">BrightPath Classes</span><span class="avatar">BP</span></div>
+        <div class="stats"><div class="stat"><b>5</b>new today</div><div class="stat"><b>2</b>hot</div><div class="stat"><b>1</b>waiting</div></div>
+        <div class="sec">Needs you</div>
+        <div class="row"><span class="ini">RS</span><span class="who"><b>Rahul Sharma</b><span>Class 11 · JEE · asked for sir</span></span><span class="pill wait">Waiting</span></div>
+        <div class="sec">Latest leads</div>
+        <div class="row"><span class="ini">PM</span><span class="who"><b>Priya Mohanty</b><span>Class 10 · Foundation</span></span><span class="pill hot">Hot</span></div>
+        <div class="row"><span class="ini">AK</span><span class="who"><b>Aman Kumar</b><span>Class 12 · NEET</span></span><span class="pill new">New</span></div>
+        <div class="nav"><span class="on">Leads</span><span>Docs</span><span>Facts</span><span>Stats</span></div>
+      </div>
+    </div>
+    <div class="card-body"><h3>C · Warm and friendly</h3><p>Cream background, saffron accent, soft cards with shadows. Closer to Notion or Attio; friendlier for a local owner.</p></div>
+  </div>
+</div>
