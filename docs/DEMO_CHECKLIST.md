@@ -5,6 +5,13 @@ if a label below does not match, look for the nearest equivalent.
 
 ## Start the app
 
+**Quick way, after every PC restart** (once the institutes exist): `powershell -ExecutionPolicy Bypass -File .\start-demo.ps1`.
+It stops any old app and tunnel, starts both, writes the new address into `PUBLIC_BASE_URL`, waits until it is live,
+points every active bot's webhook at it and prints the dashboard link. If it reports a timeout, the network blocks the
+tunnel (seen on the campus Wi-Fi, 18 and 20 Oct 2026): switch to the mobile hotspot and run it again.
+
+The same steps by hand:
+
 1. Start a tunnel: `cloudflared tunnel --protocol http2 --url http://localhost:8000`. (`--protocol http2` runs over
    normal HTTPS; the default QUIC connection is blocked on some networks, such as the campus network.) Copy the `https://…trycloudflare.com` address.
 2. Put that address in `.env` as `PUBLIC_BASE_URL`. It changes every time the tunnel restarts.
