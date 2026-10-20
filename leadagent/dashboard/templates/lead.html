@@ -1,27 +1,39 @@
 {% extends "base.html" %}
+{% from "_ui.html" import avatar, badge %}
 {% block title %}Lead {{ lead.id }} · {{ institute.name }}{% endblock %}
 {% block content %}
-<p><a href="/dash/{{ institute.slug }}/leads">&larr; All leads</a></p>
-<h1>Lead #{{ lead.id }}: {{ lead.name or "Name not given" }}</h1>
-<div class="scroll"><table>
-<tr><th>Class</th><td>{{ lead.student_class or "?" }}</td></tr>
-<tr><th>Course</th><td>{{ lead.course or "?" }}</td></tr>
-<tr><th>Contact</th><td>{{ lead.phone or (lead.channel ~ " " ~ lead.channel_user_id) }}</td></tr>
-<tr><th>Stage</th><td>{{ lead.stage }}{% if lead.handoff_reason %} ({{ lead.handoff_reason }}){% endif %}</td></tr>
-<tr><th>Interest</th><td>{{ lead.interest or "?" }}{% if lead.interest_reason %} ({{ lead.interest_reason }}){% endif %}</td></tr>
-<tr><th>Notes</th><td>{{ lead.notes or "" }}</td></tr>
-<tr><th>First message</th><td>{{ local(lead.created_at) }}</td></tr>
-<tr><th>Last message</th><td>{{ local(lead.last_user_msg_at) }}</td></tr>
-</table></div>
-<p>
-  <form class="inline" method="post" action="/dash/{{ institute.slug }}/leads/{{ lead.id }}/resume"><button {% if lead.stage != "handed_off" %}disabled{% endif %}>Switch the assistant back on</button></form>
-  <form class="inline" method="post" action="/dash/{{ institute.slug }}/leads/{{ lead.id }}/close"><button {% if lead.stage == "closed" %}disabled{% endif %}>Close</button></form>
-  <form class="inline" method="post" action="/dash/{{ institute.slug }}/leads/{{ lead.id }}/delete" onsubmit="return confirm('Delete this lead and all its messages?')"><button>Delete</button></form>
-</p>
-<h2>Conversation</h2>
+<p><a class="more" href="/dash/{{ institute.slug }}/leads">&larr; All leads</a></p>
+
+<div class="card">
+  <div class="row plain" style="margin-bottom:14px">
+    {{ avatar(lead.name) }}
+    <span class="who"><b style="font-size:18px">{{ lead.name or "Name not given" }}</b><span>Lead #{{ lead.id }}</span></span>
+    {{ badge(lead) }}
+  </div>
+  <dl class="details">
+    <dt>Class</dt><dd>{{ lead.student_class or "?" }}</dd>
+    <dt>Course</dt><dd>{{ lead.course or "?" }}</dd>
+    <dt>Contact</dt><dd>{{ lead.phone or (lead.channel ~ " " ~ lead.channel_user_id) }}</dd>
+    <dt>Stage</dt><dd>{{ lead.stage.replace("_", " ")|capitalize }}{% if lead.handoff_reason %} ({{ lead.handoff_reason }}){% endif %}</dd>
+    <dt>Interest</dt><dd>{{ (lead.interest or "?")|capitalize }}{% if lead.interest_reason %} ({{ lead.interest_reason }}){% endif %}</dd>
+    {% if lead.notes %}<dt>Notes</dt><dd>{{ lead.notes }}</dd>{% endif %}
+    <dt>First message</dt><dd>{{ local(lead.created_at) }}</dd>
+    <dt>Last message</dt><dd>{{ local(lead.last_user_msg_at) }}</dd>
+  </dl>
+</div>
+
+<div class="actions">
+  <form method="post" action="/dash/{{ institute.slug }}/leads/{{ lead.id }}/resume"><button class="btn" {% if lead.stage != "handed_off" %}disabled{% endif %}>Switch the assistant back on</button></form>
+  <form method="post" action="/dash/{{ institute.slug }}/leads/{{ lead.id }}/close"><button class="btn btn-quiet" {% if lead.stage == "closed" %}disabled{% endif %}>Close</button></form>
+  <form method="post" action="/dash/{{ institute.slug }}/leads/{{ lead.id }}/delete" onsubmit="return confirm('Delete this lead and all its messages?')"><button class="btn btn-danger">Delete</button></form>
+</div>
+
+<div class="sec">Conversation</div>
+<div class="chat">
 {% for m in messages %}
-<div class="msg {{ m.role }}"><small>{{ m.role }} · {{ local(m.created_at) }}</small><br>{{ m.text }}</div>
+<div class="bubble {{ m.role }}">{{ m.text }}<small>{{ {"user": "Student", "assistant": "Assistant", "owner": "You"}.get(m.role, m.role) }} · {{ local(m.created_at) }}</small></div>
 {% else %}
-<p>No messages.</p>
+<p class="empty">No messages.</p>
 {% endfor %}
+</div>
 {% endblock %}

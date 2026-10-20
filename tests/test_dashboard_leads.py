@@ -139,3 +139,25 @@ def test_the_admin_sees_every_institute(client, session, two_institutes):
     make_user(session, email="admin@lead.test", role="admin")
     login(client, email="admin@lead.test")
     assert "Other Student" in client.get("/dash/other/leads").text
+
+
+def test_transcript_is_shown_as_chat_bubbles(client, session, two_institutes):
+    mine, _ = two_institutes
+    lead = make_lead(session, mine, "1", name="Rahul")
+    for role, text in (("user", "Fee?"), ("assistant", "68,000 a year."), ("owner", "Come at 5 pm.")):
+        repo.log_message(session, lead, role, text)
+    session.commit()
+    login(client)
+    page = client.get(f"/dash/bright/leads/{lead.id}").text
+    positions = [page.index(f'class="bubble {role}"') for role in ("user", "assistant", "owner")]
+    assert positions == sorted(positions)
+
+
+def test_lead_page_actions_are_post_forms(client, session, two_institutes):
+    mine, _ = two_institutes
+    lead = make_lead(session, mine, "1", stage="handed_off")
+    login(client)
+    page = client.get(f"/dash/bright/leads/{lead.id}").text
+    for action in ("resume", "close", "delete"):
+        assert f'method="post" action="/dash/bright/leads/{lead.id}/{action}"' in page
+    assert "return confirm(" in page

@@ -1,25 +1,35 @@
 {% extends "base.html" %}
+{% from "_ui.html" import avatar, badge, lead_row %}
 {% block title %}Leads · {{ institute.name }}{% endblock %}
 {% block content %}
 <h1>Leads</h1>
-<form method="get">
-  <select name="stage"><option value="">Any stage</option>{% for s in stages %}<option value="{{ s }}" {% if s == stage %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
-  <select name="interest"><option value="">Any interest</option>{% for i in interests %}<option value="{{ i }}" {% if i == interest %}selected{% endif %}>{{ i }}</option>{% endfor %}</select>
-  <select name="days"><option value="0">All time</option>{% for d in (1, 7, 30) %}<option value="{{ d }}" {% if d == days %}selected{% endif %}>Last {{ d }} day{% if d > 1 %}s{% endif %}</option>{% endfor %}</select>
-  <button>Filter</button>
-  <a href="/dash/{{ institute.slug }}/leads.csv?stage={{ stage|urlencode }}&amp;interest={{ interest|urlencode }}&amp;days={{ days }}">Download CSV</a>
+<form method="get" class="filters">
+  <select name="stage" aria-label="Stage"><option value="">Any stage</option>{% for s in stages %}<option value="{{ s }}" {% if s == stage %}selected{% endif %}>{{ s.replace("_", " ")|capitalize }}</option>{% endfor %}</select>
+  <select name="interest" aria-label="Interest"><option value="">Any interest</option>{% for i in interests %}<option value="{{ i }}" {% if i == interest %}selected{% endif %}>{{ i|capitalize }}</option>{% endfor %}</select>
+  <select name="days" aria-label="Period"><option value="0">All time</option>{% for d in (1, 7, 30) %}<option value="{{ d }}" {% if d == days %}selected{% endif %}>Last {{ d }} day{% if d > 1 %}s{% endif %}</option>{% endfor %}</select>
+  <button class="btn">Filter</button>
+  <a class="btn btn-quiet" href="/dash/{{ institute.slug }}/leads.csv?stage={{ stage|urlencode }}&amp;interest={{ interest|urlencode }}&amp;days={{ days }}">Download CSV</a>
 </form>
-<div class="scroll"><table>
-<tr><th>#</th><th>Name</th><th>Class</th><th>Course</th><th>Contact</th><th>Stage</th><th>Interest</th><th>Created</th></tr>
+
+<div class="only-narrow">
+{% for lead in leads %}
+{{ lead_row(lead, institute.slug, lead|about(local(lead.created_at))) }}
+{% else %}
+<p class="empty">No leads match.</p>
+{% endfor %}
+</div>
+
+<div class="only-wide scroll"><table>
+<tr><th>Lead</th><th>Class</th><th>Course</th><th>Contact</th><th>Status</th><th>Created</th></tr>
 {% for lead in leads %}
 <tr>
-  <td><a href="/dash/{{ institute.slug }}/leads/{{ lead.id }}">{{ lead.id }}</a></td>
-  <td>{{ lead.name or "" }}</td><td>{{ lead.student_class or "" }}</td><td>{{ lead.course or "" }}</td>
+  <td><a class="row plain" href="/dash/{{ institute.slug }}/leads/{{ lead.id }}">{{ avatar(lead.name) }}<span class="who"><b>{{ lead.name or "Name not given" }}</b><span>#{{ lead.id }}</span></span></a></td>
+  <td>{{ lead.student_class or "" }}</td><td>{{ lead.course or "" }}</td>
   <td>{{ lead.phone or (lead.channel ~ " " ~ lead.channel_user_id) }}</td>
-  <td>{{ lead.stage }}</td><td>{{ lead.interest or "" }}</td><td>{{ local(lead.created_at) }}</td>
+  <td>{{ badge(lead) }}</td><td><small>{{ local(lead.created_at) }}</small></td>
 </tr>
 {% else %}
-<tr><td colspan="8">No leads match.</td></tr>
+<tr><td colspan="6">No leads match.</td></tr>
 {% endfor %}
 </table></div>
 {% endblock %}
