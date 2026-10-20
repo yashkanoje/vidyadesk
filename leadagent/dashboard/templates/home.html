@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "_ui.html" import lead_row %}
+{% block title %}Home · {{ institute.name }}{% endblock %}
+{% block content %}
+<h1 class="only-wide">Good to see you</h1>
+<div class="stats">
+  <div class="stat" data-count="{{ summary.new_today }}"><b>{{ summary.new_today }}</b>new today</div>
+  <div class="stat" data-count="{{ summary.hot }}"><b>{{ summary.hot }}</b>hot</div>
+  <div class="stat" data-count="{{ summary.waiting }}"><b>{{ summary.waiting }}</b>waiting</div>
+</div>
+
+<div class="sec">Needs you</div>
+{% for lead in summary.needs_you %}
+{{ lead_row(lead, institute.slug, lead|about(lead.handoff_reason)) }}
+{% else %}
+<p class="empty">Nothing waiting. The assistant is handling every enquiry.</p>
+{% endfor %}
+
+<div class="sec">Latest leads</div>
+{% for lead in summary.latest %}
+{{ lead_row(lead, institute.slug, lead|about(local(lead.created_at))) }}
+{% else %}
+<p class="empty">No enquiries yet.</p>
+{% endfor %}
+{% if summary.latest %}<a class="more" href="/dash/{{ institute.slug }}/leads">See all leads →</a>{% endif %}
+{% endblock %}

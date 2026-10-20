@@ -30,8 +30,8 @@ def test_pages_need_a_login(client, session, path):
 def test_an_owner_logs_in_to_their_leads(client, session):
     make_user(session, institute=make_institute(session))
     response = login(client)
-    assert (response.status_code, response.headers["location"]) == (303, "/dash/bright/leads")
-    assert client.get("/dash", follow_redirects=False).headers["location"] == "/dash/bright/leads"
+    assert (response.status_code, response.headers["location"]) == (303, "/dash/bright/home")
+    assert client.get("/dash", follow_redirects=False).headers["location"] == "/dash/bright/home"
 
 
 def test_the_admin_logs_in_to_the_institute_list(client, session):
