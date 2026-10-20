@@ -10,10 +10,11 @@
 </div>
 <div class="sec">New leads per day</div>
 <div class="card">
+  {% set busiest = stats.per_day|map('last')|max %}
   {% for day, count in stats.per_day %}
   <div style="display:flex;align-items:center;gap:10px;padding:5px 0;font-size:14px">
     <span style="width:84px;flex:none;color:var(--muted)">{{ day.strftime("%a %d %b") }}</span>
-    <span style="flex:1;min-width:0"><span class="bar" style="width: {{ [count * 16, 100]|min if count else 0 }}%"></span></span>
+    <span style="flex:1;min-width:0"><span class="bar" style="width: {{ (count * 100 / busiest)|round|int if busiest else 0 }}%"></span></span>
     <b style="width:28px;text-align:right">{{ count }}</b>
   </div>
   {% endfor %}

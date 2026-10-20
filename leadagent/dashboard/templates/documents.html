@@ -17,7 +17,7 @@
   <span class="avatar" aria-hidden="true">
     <svg class="icon" viewBox="0 0 24 24"><path d="M6 3h8l5 5v13H6zM14 3v5h5M9 13h7M9 17h7"/></svg>
   </span>
-  <span class="who"><b>{{ d.filename }}</b><span>Added {{ local(d.uploaded_at) }}{% if d.error %} · {{ d.error }}{% endif %}</span></span>
+  <span class="who"><b>{{ d.filename }}</b><span>Added {{ local(d.uploaded_at) }}</span>{% if d.error %}<p class="why">{{ d.error }}</p>{% endif %}</span>
   <span class="pill {{ 'ok' if d.status == 'ready' else 'bad' }}">{{ d.status }}</span>
   <form class="inline" method="post" action="/dash/{{ institute.slug }}/documents/{{ d.id }}/delete" onsubmit="return confirm('Delete this document?')"><button class="btn btn-danger" aria-label="Delete {{ d.filename }}">Delete</button></form>
 </div>

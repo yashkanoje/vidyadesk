@@ -78,6 +78,8 @@ a.row:hover { box-shadow: var(--shadow-lift); }
 .row .who { flex: 1; min-width: 0; }
 .row .who b, .row .who span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .row .who span { font-size: 12.5px; color: var(--muted); }
+.row .who .why { font-size: 12.5px; color: #9f1d23; margin: 2px 0 0; white-space: normal; overflow-wrap: anywhere; }
+.lead-name { font-size: 19px; margin: 0; overflow-wrap: anywhere; }
 .empty { color: var(--muted); background: var(--card); border: 1px dashed var(--border); border-radius: var(--radius); padding: 18px; text-align: center; }
 .more { display: inline-block; margin: 4px 4px 0; font-weight: 600; text-decoration: none; }
 
@@ -105,7 +107,7 @@ a.row:hover { box-shadow: var(--shadow-lift); }
 
 .flash, .error { border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; font-size: 14px; }
 .flash { background: #e6f4ee; color: #0f5f4f; }
-.error { background: #fde8e6; color: #9f1d23; white-space: pre-wrap; }
+.error { background: #fde8e6; color: #9f1d23; white-space: pre-wrap; overflow-wrap: anywhere; }
 
 label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 12px; }
 input, select, textarea {
@@ -154,6 +156,9 @@ tr:last-child td { border-bottom: 0; }
 }
 #intro[hidden] { display: none; }
 .intro-play { overflow: hidden; }
+/* The overlay fades out over the real page: keep the page's content hidden until the build-up shows it. */
+.intro-play main .stat, .intro-play main .sec, .intro-play main .row, .intro-play main .empty,
+.intro-play main .more, .intro-play main h1 { opacity: 0; }
 #intro .intro-skip { position: absolute; top: 16px; right: 18px; font-size: 13px; color: var(--muted); text-decoration: none; z-index: 1; }
 #intro .intro-inner { position: relative; display: flex; flex-direction: column; align-items: center; max-width: 420px; }
 #intro .glow {

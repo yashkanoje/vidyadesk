@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -48,3 +50,19 @@ def test_admin_navigation_has_institutes(client, session):
     make_user(session, email="admin@lead.test", role="admin")
     login(client, "admin@lead.test")
     assert 'href="/dash/admin/institutes"' in client.get("/dash/admin/institutes").text
+
+
+def stylesheet():
+    return (Path(__file__).resolve().parents[1] / "leadagent" / "dashboard" / "templates" / "vidyadesk.css").read_text(encoding="utf-8")
+
+
+def test_home_content_stays_hidden_while_the_intro_plays():
+    # The intro fades out over the real page; the page must not show through before its build-up starts.
+    css = stylesheet()
+    assert ".intro-play main .stat" in css and ".intro-play main .row" in css
+
+
+def test_error_banners_wrap_long_words():
+    css = stylesheet()
+    error_rule = css[css.index("\n.error {"):]  # the error rule itself, not the shared .flash/.error one
+    assert "overflow-wrap: anywhere" in error_rule[: error_rule.index("}")]

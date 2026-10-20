@@ -109,3 +109,8 @@ def test_intro_name_is_escaped(client, session, two_institutes):
     login(client)
     intro = intro_of(client.get("/dash/bright/home").text)
     assert "&lt;b&gt;x&lt;/b&gt;" in intro and "<b>x</b>" not in intro
+
+
+def test_intro_is_a_modal_dialog(client, two_institutes):
+    login(client)
+    assert 'aria-modal="true"' in intro_of(client.get("/dash/bright/home").text)

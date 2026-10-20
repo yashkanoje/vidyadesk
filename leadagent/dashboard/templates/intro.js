@@ -62,8 +62,12 @@
       event.preventDefault();
       finish(false);
     });
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") finish(false);
+    });
     body.classList.add("intro-play");
     intro.hidden = false;
+    intro.querySelector(".intro-skip").focus();
     setTimeout(function () { intro.classList.add("leaving"); }, 5200);
     setTimeout(function () { finish(true); }, 5800);
   } catch (e) {

@@ -161,3 +161,10 @@ def test_lead_page_actions_are_post_forms(client, session, two_institutes):
     for action in ("resume", "close", "delete"):
         assert f'method="post" action="/dash/bright/leads/{lead.id}/{action}"' in page
     assert "return confirm(" in page
+
+
+def test_the_lead_page_shows_the_whole_name(client, session, two_institutes):
+    mine, _ = two_institutes
+    lead = make_lead(session, mine, "1", name="Sneha Raghavendran Venkatasubramanian Iyer")
+    login(client)
+    assert '<h1 class="lead-name">Sneha Raghavendran Venkatasubramanian Iyer</h1>' in client.get(f"/dash/bright/leads/{lead.id}").text

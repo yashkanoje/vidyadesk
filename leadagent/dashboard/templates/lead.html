@@ -7,7 +7,7 @@
 <div class="card">
   <div class="row plain" style="margin-bottom:14px">
     {{ avatar(lead.name) }}
-    <span class="who"><b style="font-size:18px">{{ lead.name or "Name not given" }}</b><span>Lead #{{ lead.id }}</span></span>
+    <span class="who"><h1 class="lead-name">{{ lead.name or "Name not given" }}</h1><span>Lead #{{ lead.id }}</span></span>
     {{ badge(lead) }}
   </div>
   <dl class="details">

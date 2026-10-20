@@ -87,3 +87,13 @@ def test_another_institutes_document_survives_a_delete_through_its_own_slug(clie
     assert client.post(f"/dash/other/documents/{document.id}/delete").status_code == 404
     session.expire_all()
     assert session.scalars(select(Document)).one().filename == "secret.txt"
+
+
+def test_a_failed_documents_reason_is_shown_on_its_own_line(client, session):
+    from helpers import add_document_with_chunks
+    from leadagent.store import repo
+
+    document = add_document_with_chunks(session, repo.institute_by_slug(session, "bright"), "scan.pdf", [])
+    repo.mark_document_failed(session, document, "no text found: this looks like a scanned PDF")
+    session.commit()
+    assert '<p class="why">no text found: this looks like a scanned PDF</p>' in client.get("/dash/bright/documents").text
