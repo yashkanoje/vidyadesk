@@ -97,8 +97,8 @@ a.row:hover { box-shadow: var(--shadow-lift); }
   font: inherit; font-weight: 600; cursor: pointer; text-decoration: none; background: var(--accent); color: #fff;
 }
 .btn:hover { filter: brightness(1.06); }
-.btn-quiet { background: var(--card); color: var(--ink); box-shadow: inset 0 0 0 1px var(--border); }
-.btn-danger { background: #fff; color: #c0262d; box-shadow: inset 0 0 0 1px #f3c4c4; }
+.btn.btn-quiet { background: var(--card); color: var(--ink); box-shadow: inset 0 0 0 1px var(--border); }
+.btn.btn-danger { background: #fff; color: #c0262d; box-shadow: inset 0 0 0 1px #f3c4c4; }
 .btn:disabled { opacity: .45; cursor: not-allowed; filter: none; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 18px; }
 .actions form { margin: 0; }
@@ -138,7 +138,7 @@ tr:last-child td { border-bottom: 0; }
 .bubble.owner { align-self: flex-end; background: #fff1c2; color: #5c3d00; border-bottom-right-radius: 4px; }
 
 /* ---------- stats ---------- */
-.bar { display: inline-block; background: var(--accent); height: 12px; border-radius: 6px; vertical-align: middle; margin-right: 6px; min-width: 2px; }
+.bar { display: inline-block; background: var(--accent); height: 12px; border-radius: 6px; vertical-align: middle; margin-right: 6px; }
 
 /* ---------- login ---------- */
 .login { width: 100%; max-width: 380px; text-align: center; }
@@ -146,3 +146,50 @@ tr:last-child td { border-bottom: 0; }
 .login .brand { font-size: 26px; font-weight: 800; color: var(--accent); margin: 10px 0 2px; }
 .login .tag { color: var(--muted); margin-bottom: 20px; }
 .login .btn { width: 100%; justify-content: center; margin-top: 6px; }
+
+/* ---------- first-visit intro (timings from the approved mockup) ---------- */
+#intro {
+  position: fixed; inset: 0; z-index: 100; background: var(--bg);
+  display: flex; align-items: center; justify-content: center; padding: 0 30px; text-align: center;
+}
+#intro[hidden] { display: none; }
+.intro-play { overflow: hidden; }
+#intro .intro-skip { position: absolute; top: 16px; right: 18px; font-size: 13px; color: var(--muted); text-decoration: none; z-index: 1; }
+#intro .intro-inner { position: relative; display: flex; flex-direction: column; align-items: center; max-width: 420px; }
+#intro .glow {
+  position: absolute; width: 260px; height: 260px; top: -88px; left: 50%; margin-left: -130px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,186,120,.45), rgba(251,248,243,0) 70%); opacity: 0;
+  animation: introFade 1.2s .2s forwards, introBreathe 3s 1.4s infinite;
+}
+#intro .ring { position: relative; width: 84px; height: 84px; }
+#intro .ring circle { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; stroke-dasharray: 240; stroke-dashoffset: 240; animation: introDraw 1s .2s ease-out forwards; }
+#intro .ring path { fill: var(--accent); opacity: 0; transform-origin: 42px 42px; transform: scale(.5); animation: introPop .5s .9s forwards; }
+#intro .hello { position: relative; margin-top: 22px; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); opacity: 0; animation: introUp .5s 1.2s forwards; }
+#intro .name { position: relative; margin-top: 6px; font-size: 26px; font-weight: 800; opacity: 0; animation: introUp .6s 1.4s forwards; overflow-wrap: anywhere; }
+#intro .intro-quote { position: relative; margin-top: 34px; font-family: Georgia, "Times New Roman", serif; font-size: 18px; line-height: 1.5; font-style: italic; color: #4a3a2c; }
+#intro .intro-quote .w { display: inline-block; opacity: 0; transform: translateY(6px); filter: blur(4px); animation: introWord .45s forwards; }
+#intro .intro-by { position: relative; margin-top: 12px; font-size: 13px; color: var(--accent); font-weight: 600; opacity: 0; animation: introUp .5s forwards; }
+#intro.leaving { animation: introFadeOut .6s forwards; }
+#intro.leaving .intro-inner { animation: introLeave .6s forwards; }
+
+.intro-build main .stat { opacity: 0; transform: translateY(10px); animation: introRise .4s forwards; }
+.intro-build main .stat:nth-child(1) { animation-delay: .2s; }
+.intro-build main .stat:nth-child(2) { animation-delay: .3s; }
+.intro-build main .stat:nth-child(3) { animation-delay: .4s; }
+.intro-build main .sec { opacity: 0; animation: introFade .3s .5s forwards; }
+.intro-build main .row, .intro-build main .empty, .intro-build main .more { opacity: 0; transform: translateY(10px); animation: introRise .4s forwards; }
+
+@keyframes introDraw { to { stroke-dashoffset: 0; } }
+@keyframes introPop { to { opacity: 1; transform: scale(1); } }
+@keyframes introUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes introWord { to { opacity: 1; transform: none; filter: blur(0); } }
+@keyframes introFade { to { opacity: 1; } }
+@keyframes introFadeOut { to { opacity: 0; } }
+@keyframes introBreathe { 50% { transform: scale(1.08); } }
+@keyframes introLeave { to { opacity: 0; transform: translateY(-30px) scale(.96); } }
+@keyframes introRise { to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  #intro { display: none !important; }
+  .intro-build main * { animation: none !important; opacity: 1 !important; transform: none !important; }
+}

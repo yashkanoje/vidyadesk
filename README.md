@@ -56,8 +56,11 @@ Owners and the admin log in at `<PUBLIC_BASE_URL>/dash` (locally, `http://127.0.
     .\.venv\Scripts\python -m leadagent.cli add-user --email owner@example.com --role owner --slug brightpath
     .\.venv\Scripts\python -m leadagent.cli set-password --email owner@example.com
 
-An owner sees only their institute: leads with filters and CSV export, each lead's conversation with
-resume / close / delete, documents, the facts editor and stats. The admin also manages institutes.
+The dashboard is branded **VidyaDesk** (warm cream-and-saffron look, bottom tabs on a phone, a sidebar on a laptop).
+An owner sees only their institute: a Home screen (today's numbers, the leads waiting for them, the newest leads),
+leads with filters and CSV export, each lead's conversation as chat bubbles with resume / close / delete, documents,
+the facts editor and stats. The admin also manages institutes. The first visit on each browser plays a short welcome
+animation (skippable, never for "reduce motion" users); after that the dashboard opens straight to Home.
 `SESSION_SECRET` in `.env` signs the login cookie; without it, everyone is logged out on every restart.
 
 ## Layout

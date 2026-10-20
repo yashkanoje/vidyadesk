@@ -76,3 +76,36 @@ def test_admin_can_open_an_institute_home(client, session, two_institutes):
     make_user(session, email="admin@lead.test", role="admin")
     login(client, "admin@lead.test")
     assert client.get("/dash/other/home").status_code == 200
+
+
+QUOTE = "Education is the most powerful weapon which you can use to change the world."
+
+
+def intro_of(page):
+    start = page.index('<div id="intro"')
+    return page[start:page.index("</div><!-- /intro -->", start)]
+
+
+def test_home_carries_the_intro_hidden_by_default(client, two_institutes):
+    login(client)
+    page = client.get("/dash/bright/home").text
+    assert '<div id="intro" hidden' in page
+    intro = intro_of(page)
+    assert QUOTE in intro and "Nelson Mandela" in intro and "Skip" in intro
+    assert "Bright Classes" in intro
+
+
+def test_admin_intro_shows_the_product_name(client, session, two_institutes):
+    make_user(session, email="admin@lead.test", role="admin")
+    login(client, "admin@lead.test")
+    intro = intro_of(client.get("/dash/bright/home").text)
+    assert "VidyaDesk" in intro and "Bright Classes" not in intro
+
+
+def test_intro_name_is_escaped(client, session, two_institutes):
+    mine, _ = two_institutes
+    mine.name = "<b>x</b>"
+    session.commit()
+    login(client)
+    intro = intro_of(client.get("/dash/bright/home").text)
+    assert "&lt;b&gt;x&lt;/b&gt;" in intro and "<b>x</b>" not in intro

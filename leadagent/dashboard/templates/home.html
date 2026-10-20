@@ -2,6 +2,20 @@
 {% from "_ui.html" import lead_row %}
 {% block title %}Home · {{ institute.name }}{% endblock %}
 {% block content %}
+<div id="intro" hidden role="dialog" aria-label="Welcome to VidyaDesk">
+  <a href="#" class="intro-skip">Skip →</a>
+  <div class="intro-inner">
+    <div class="glow"></div>
+    <svg class="ring" viewBox="0 0 84 84" aria-hidden="true">
+      <circle cx="42" cy="42" r="38"/>
+      <path d="M22 30c7-2 14-1 20 3v24c-6-4-13-5-20-3zM62 30c-7-2-14-1-20 3v24c6-4 13-5 20-3z"/>
+    </svg>
+    <div class="hello">Welcome</div>
+    <div class="name">{{ intro_name }}</div>
+    <div class="intro-quote">Education is the most powerful weapon which you can use to change the world.</div>
+    <div class="intro-by">Nelson Mandela</div>
+  </div>
+</div><!-- /intro -->
 <h1 class="only-wide">Good to see you</h1>
 <div class="stats">
   <div class="stat" data-count="{{ summary.new_today }}"><b>{{ summary.new_today }}</b>new today</div>
@@ -23,4 +37,7 @@
 <p class="empty">No enquiries yet.</p>
 {% endfor %}
 {% if summary.latest %}<a class="more" href="/dash/{{ institute.slug }}/leads">See all leads →</a>{% endif %}
+<script>
+{% include "intro.js" %}
+</script>
 {% endblock %}

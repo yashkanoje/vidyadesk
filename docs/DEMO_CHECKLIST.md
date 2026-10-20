@@ -97,6 +97,7 @@ Lessons from the first attempt (15 Oct 2026), which never got a message through:
 2. Create your admin account and an owner account with `add-user` (see the README).
 3. Open `<PUBLIC_BASE_URL>/dash` on a phone.
 
+- [ ] The first login on a new phone plays the intro once; Skip works; a reload goes straight to Home.
 - [ ] The owner logs in and sees only their institute's leads.
 - [ ] A lead's page shows the whole conversation; "Switch the assistant back on" works on a handed-off lead.
 - [ ] Uploading the prospectus on the Documents page shows "ready".
