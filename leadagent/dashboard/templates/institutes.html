@@ -1,26 +1,30 @@
 {% extends "base.html" %}
+{% from "_ui.html" import avatar %}
 {% block title %}Institutes{% endblock %}
 {% block content %}
 <h1>Institutes</h1>
-<div class="scroll"><table>
-<tr><th>#</th><th>Slug</th><th>Name</th><th>Status</th><th>Owner chat</th><th>WhatsApp</th><th></th></tr>
 {% for i in institutes %}
-<tr>
-  <td>{{ i.id }}</td><td><a href="/dash/{{ i.slug }}/leads">{{ i.slug }}</a></td><td>{{ i.name }}</td>
-  <td>{{ "on" if i.active else "off" }}</td><td>{{ "set" if i.owner_telegram_chat_id else "not set" }}</td>
-  <td>{{ "attached" if i.whatsapp_phone_number_id else "-" }}</td>
-  <td><form class="inline" method="post" action="/dash/admin/institutes/{{ i.slug }}/active"><button>{{ "Switch off" if i.active else "Switch on" }}</button></form></td>
-</tr>
+<div class="row">
+  {{ avatar(i.name) }}
+  <a class="who" href="/dash/{{ i.slug }}/home" style="color:inherit;text-decoration:none">
+    <b>{{ i.name }}</b>
+    <span>{{ i.slug }} · owner chat {{ "set" if i.owner_telegram_chat_id else "not set" }} · WhatsApp {{ "attached" if i.whatsapp_phone_number_id else "none" }}</span>
+  </a>
+  <span class="pill {{ 'ok' if i.active else 'closed' }}">{{ "on" if i.active else "off" }}</span>
+  <form class="inline" method="post" action="/dash/admin/institutes/{{ i.slug }}/active"><button class="btn btn-quiet">{{ "Switch off" if i.active else "Switch on" }}</button></form>
+</div>
+{% else %}
+<p class="empty">No institutes yet.</p>
 {% endfor %}
-</table></div>
-<h2>Add an institute</h2>
-{% if error %}<p class="error">{{ error }}</p>{% endif %}
-<form method="post" action="/dash/admin/institutes">
-  <p><label>Slug (lower-case letters, digits, hyphens)<br><input name="slug" value="{{ form.slug }}" required></label></p>
-  <p><label>Name<br><input name="name" value="{{ form.name }}" required></label></p>
-  <p><label>Timezone<br><input name="timezone" value="{{ form.timezone }}"></label></p>
-  <p><label>Telegram bot token<br><input type="password" name="telegram_token" required autocomplete="off"></label></p>
-  <p><label>Facts<br><textarea name="facts_yaml" spellcheck="false">{{ form.facts_yaml }}</textarea></label></p>
-  <p><button>Add institute</button></p>
+
+<div class="sec">Add an institute</div>
+{% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+<form method="post" action="/dash/admin/institutes" class="card">
+  <label>Slug (lower-case letters, digits, hyphens)<input name="slug" value="{{ form.slug }}" required></label>
+  <label>Name<input name="name" value="{{ form.name }}" required></label>
+  <label>Timezone<input name="timezone" value="{{ form.timezone }}"></label>
+  <label>Telegram bot token<input type="password" name="telegram_token" required autocomplete="off"></label>
+  <label>Facts<textarea name="facts_yaml" spellcheck="false">{{ form.facts_yaml }}</textarea></label>
+  <button class="btn">Add institute</button>
 </form>
 {% endblock %}
