@@ -1,47 +1,65 @@
+{% from "_ui.html" import mark, avatar %}
+{%- macro icon(name) -%}
+<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+{%- if name == "home" %}<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>
+{%- elif name == "leads" %}<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.8c1.7.8 2.7 2.5 3 5.2"/>
+{%- elif name == "documents" %}<path d="M6 3h8l5 5v13H6zM14 3v5h5M9 13h7M9 17h7"/>
+{%- elif name == "facts" %}<path d="M4 6h16M4 12h16M4 18h10"/>
+{%- elif name == "stats" %}<path d="M5 20V11M11 20V5M17 20v-6M2 20h20"/>
+{%- else %}<path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/>
+{%- endif %}</svg>
+{%- endmacro -%}
 <!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% block title %}Lead agent{% endblock %}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fbf8f3">
+<title>{% block title %}Dashboard{% endblock %} · VidyaDesk</title>
 <style>
-  body { font-family: system-ui, sans-serif; margin: 0; color: #1d2433; background: #f6f7f9; }
-  header { background: #1d2433; color: #fff; padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
-  header a { color: #fff; text-decoration: none; }
-  header form { margin-left: auto; }
-  main { padding: 16px; max-width: 1000px; margin: 0 auto; }
-  table { border-collapse: collapse; width: 100%; background: #fff; }
-  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #e3e6ea; vertical-align: top; }
-  .scroll { overflow-x: auto; }
-  .flash { background: #e8f4ea; padding: 8px 12px; border-radius: 4px; }
-  .error { background: #fbeaea; padding: 8px 12px; border-radius: 4px; white-space: pre-wrap; }
-  .msg { background: #fff; padding: 8px 12px; margin: 6px 0; border-radius: 6px; white-space: pre-wrap; }
-  .msg.user { border-left: 4px solid #3b6fd8; }
-  .msg.assistant { border-left: 4px solid #2e9e5b; }
-  .msg.owner { border-left: 4px solid #b26b00; }
-  textarea { width: 100%; min-height: 360px; font-family: monospace; box-sizing: border-box; }
-  input, select, button { font-size: 1rem; padding: 4px 8px; }
-  .bar { display: inline-block; background: #3b6fd8; height: 12px; }
-  .inline { display: inline; }
+{% include "vidyadesk.css" %}
 </style>
 </head>
-<body>
+{%- set parts = request.url.path.split("/") %}
+{%- set here = parts[3] if parts|length > 3 and parts[2] != "admin" else ("institutes" if parts|length > 2 and parts[2] == "admin" else "") %}
+{%- set tabs = [("home", "Home"), ("leads", "Leads"), ("documents", "Docs"), ("facts", "Facts"), ("stats", "Stats")] %}
+<body class="{{ 'has-sidebar' if user else '' }}">
 {% if user %}
-<header>
-  {% if institute %}
-  <strong>{{ institute.name }}</strong>
-  <a href="/dash/{{ institute.slug }}/leads">Leads</a>
-  <a href="/dash/{{ institute.slug }}/documents">Documents</a>
-  <a href="/dash/{{ institute.slug }}/facts">Facts</a>
-  <a href="/dash/{{ institute.slug }}/stats">Stats</a>
-  {% endif %}
-  {% if user.role == "admin" %}<a href="/dash/admin/institutes">Institutes</a>{% endif %}
-  <form method="post" action="/dash/logout"><button>Log out</button></form>
+<aside class="sidebar">
+  <div class="brand">{{ mark(30) }} VidyaDesk</div>
+  <nav aria-label="Main">
+    {% if institute %}
+    <div class="inst">{{ institute.name }}</div>
+    {% for key, label in tabs %}
+    <a href="/dash/{{ institute.slug }}/{{ key }}" class="{{ 'on' if here == key else '' }}">{{ icon(key) }} {{ label }}</a>
+    {% endfor %}
+    {% endif %}
+    {% if user.role == "admin" %}
+    <a href="/dash/admin/institutes" class="{{ 'on' if here == 'institutes' else '' }}" style="margin-top:12px">{{ icon("institutes") }} Institutes</a>
+    {% endif %}
+  </nav>
+  <div class="bottom">
+    <small style="display:block;padding:0 6px 6px;overflow:hidden;text-overflow:ellipsis">{{ user.email }}</small>
+    <form method="post" action="/dash/logout"><button class="logout">Log out</button></form>
+  </div>
+</aside>
+<header class="topbar">
+  {{ mark(26) }}
+  <span class="title">{{ institute.name if institute else "VidyaDesk" }}</span>
+  {% if user.role == "admin" %}<a class="link" href="/dash/admin/institutes">Institutes</a>{% endif %}
+  <form method="post" action="/dash/logout"><button class="logout">Log out</button></form>
 </header>
 {% endif %}
-<main>
-{% if flash %}<p class="flash">{{ flash }}</p>{% endif %}
+<main class="{{ 'with-tabs' if user and institute else ('bare' if not user else '') }}">
+{% if flash %}<p class="flash" role="status">{{ flash }}</p>{% endif %}
 {% block content %}{% endblock %}
 </main>
+{% if user and institute %}
+<nav class="tabbar" aria-label="Main">
+  {% for key, label in tabs %}
+  <a href="/dash/{{ institute.slug }}/{{ key }}" class="{{ 'on' if here == key else '' }}">{{ icon(key) }}{{ label }}</a>
+  {% endfor %}
+</nav>
+{% endif %}
 </body>
 </html>

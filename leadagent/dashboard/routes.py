@@ -24,6 +24,17 @@ log = logging.getLogger(__name__)
 router = APIRouter(prefix="/dash")
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent / "templates"))
 throttle = LoginThrottle()
+
+
+def initials(name) -> str:
+    """Letters for a lead's round avatar: first and last word, '?' when there is no name yet."""
+    words = (name or "").split()
+    if not words:
+        return "?"
+    return (words[0][0] + (words[-1][0] if len(words) > 1 else "")).upper()
+
+
+templates.env.filters["initials"] = initials
 EXAMPLE_FACTS = (Path(__file__).resolve().parents[2] / "examples" / "brightpath.yaml").read_text(encoding="utf-8")
 
 STAGES = ("new", "collecting", "qualified", "handed_off", "closed")
