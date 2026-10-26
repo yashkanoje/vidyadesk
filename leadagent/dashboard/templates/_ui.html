@@ -1,0 +1,31 @@
+{# Shared pieces of the VidyaDesk look. Import with: {% from "_ui.html" import avatar, badge, lead_row, mark %} #}
+
+{% macro mark(size=36) -%}
+<svg class="mark" width="{{ size }}" height="{{ size }}" viewBox="0 0 84 84" aria-hidden="true">
+  <circle cx="42" cy="42" r="38" fill="none" stroke="currentColor" stroke-width="5"/>
+  <path fill="currentColor" d="M22 30c7-2 14-1 20 3v24c-6-4-13-5-20-3zM62 30c-7-2-14-1-20 3v24c6-4 13-5 20-3z"/>
+</svg>
+{%- endmacro %}
+
+{% macro avatar(name) -%}
+<span class="avatar" aria-hidden="true">{{ name|initials }}</span>
+{%- endmacro %}
+
+{% macro badge(lead) -%}
+{%- if lead.stage == "handed_off" -%}<span class="pill wait">Waiting</span>
+{%- elif lead.stage == "closed" -%}<span class="pill closed">Closed</span>
+{%- elif lead.interest == "hot" -%}<span class="pill hot">Hot</span>
+{%- elif lead.interest == "warm" -%}<span class="pill warm">Warm</span>
+{%- elif lead.interest == "cold" -%}<span class="pill cold">Cold</span>
+{%- elif lead.stage == "qualified" -%}<span class="pill qualified">Qualified</span>
+{%- else -%}<span class="pill new">New</span>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro lead_row(lead, slug, detail) -%}
+<a class="row" href="/dash/{{ slug }}/leads/{{ lead.id }}">
+  {{ avatar(lead.name) }}
+  <span class="who"><b>{{ lead.name or "Name not given" }}</b><span>{{ detail }}</span></span>
+  {{ badge(lead) }}
+</a>
+{%- endmacro %}

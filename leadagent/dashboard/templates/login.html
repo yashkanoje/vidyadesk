@@ -1,11 +1,19 @@
 {% extends "base.html" %}
+{% from "_ui.html" import mark %}
 {% block title %}Log in{% endblock %}
 {% block content %}
-<h1>Log in</h1>
-{% if error %}<p class="error">{{ error }}</p>{% endif %}
-<form method="post" action="/dash/login">
-  <p><label>Email<br><input type="email" name="email" required autocomplete="username"></label></p>
-  <p><label>Password<br><input type="password" name="password" required autocomplete="current-password"></label></p>
-  <p><button>Log in</button></p>
-</form>
+<div class="login">
+  {{ mark(64) }}
+  <div class="brand">VidyaDesk</div>
+  <p class="tag">Every enquiry answered. Every lead captured.</p>
+  <div class="card">
+    <h1 style="font-size:19px">Log in</h1>
+    {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+    <form method="post" action="/dash/login">
+      <label>Email<input type="email" name="email" required autocomplete="username"></label>
+      <label>Password<input type="password" name="password" required autocomplete="current-password"></label>
+      <button class="btn">Log in</button>
+    </form>
+  </div>
+</div>
 {% endblock %}

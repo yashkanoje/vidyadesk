@@ -58,3 +58,17 @@ def test_stats_show_counts(client, session):
 def test_another_institutes_facts_and_stats_are_out_of_reach(client, method, path):
     response = client.post(path, data={"facts_yaml": "x"}) if method == "post" else client.get(path)
     assert response.status_code == 404
+
+
+def test_stats_bars_scale_to_the_busiest_day(client, session):
+    from datetime import timedelta
+
+    from leadagent.store import repo
+
+    bright = repo.institute_by_slug(session, "bright")
+    for i in range(8):
+        make_lead(session, bright, f"t{i}", created_at=utcnow())
+    for i in range(4):
+        make_lead(session, bright, f"y{i}", created_at=utcnow() - timedelta(days=1))
+    page = client.get("/dash/bright/stats").text
+    assert "width: 100%" in page and "width: 50%" in page

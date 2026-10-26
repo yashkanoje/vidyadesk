@@ -2,11 +2,21 @@
 {% block title %}Stats · {{ institute.name }}{% endblock %}
 {% block content %}
 <h1>Last 14 days</h1>
-<p><strong>{{ stats.total }} leads</strong> · {{ stats.hot_share }}% hot · {{ stats.waiting }} waiting for the team now</p>
-<div class="scroll"><table>
-<tr><th>Day</th><th>New leads</th></tr>
-{% for day, count in stats.per_day %}
-<tr><td>{{ day.strftime("%a %d %b") }}</td><td><span class="bar" style="width: {{ [count * 16, 400]|min }}px"></span> {{ count }}</td></tr>
-{% endfor %}
-</table></div>
+<p class="muted">{{ stats.total }} leads · {{ stats.hot_share }}% hot · {{ stats.waiting }} waiting for the team now</p>
+<div class="stats">
+  <div class="stat"><b>{{ stats.total }}</b>leads</div>
+  <div class="stat"><b>{{ stats.hot_share }}%</b>hot</div>
+  <div class="stat"><b>{{ stats.waiting }}</b>waiting now</div>
+</div>
+<div class="sec">New leads per day</div>
+<div class="card">
+  {% set busiest = stats.per_day|map('last')|max %}
+  {% for day, count in stats.per_day %}
+  <div style="display:flex;align-items:center;gap:10px;padding:5px 0;font-size:14px">
+    <span style="width:84px;flex:none;color:var(--muted)">{{ day.strftime("%a %d %b") }}</span>
+    <span style="flex:1;min-width:0"><span class="bar" style="width: {{ (count * 100 / busiest)|round|int if busiest else 0 }}%"></span></span>
+    <b style="width:28px;text-align:right">{{ count }}</b>
+  </div>
+  {% endfor %}
+</div>
 {% endblock %}

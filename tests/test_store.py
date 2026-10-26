@@ -201,3 +201,23 @@ def test_lead_stats_count_per_local_day(session):
     assert len(stats["per_day"]) == 14
     assert [count for _, count in stats["per_day"]][-2:] == [1, 1]
     assert (stats["total"], stats["hot"], stats["hot_share"], stats["waiting"]) == (2, 1, 50, 1)
+
+
+def test_home_summary_counts_and_orders(session):
+    institute = make_institute(session)
+    other = make_institute(session, "other")
+    a = make_lead(session, institute, "1", interest="hot", created_at=NOON_IST - timedelta(hours=1))
+    b = make_lead(
+        session, institute, "2", stage="handed_off", created_at=NOON_IST - timedelta(days=1),
+        last_user_msg_at=NOON_IST - timedelta(hours=3),
+    )
+    c = make_lead(
+        session, institute, "3", stage="handed_off", created_at=NOON_IST - timedelta(days=2),
+        last_user_msg_at=NOON_IST - timedelta(hours=10),
+    )
+    d = make_lead(session, institute, "4", stage="closed", interest="hot", created_at=NOON_IST - timedelta(days=3))
+    make_lead(session, other, "5", interest="hot", created_at=NOON_IST)
+    summary = repo.home_summary(session, institute.id, "Asia/Kolkata", NOON_IST, latest=8)
+    assert (summary["new_today"], summary["hot"], summary["waiting"]) == (1, 1, 2)
+    assert [lead.id for lead in summary["needs_you"]] == [c.id, b.id]
+    assert [lead.id for lead in summary["latest"]] == [d.id, c.id, b.id, a.id]

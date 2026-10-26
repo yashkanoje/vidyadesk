@@ -24,6 +24,26 @@ log = logging.getLogger(__name__)
 router = APIRouter(prefix="/dash")
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent / "templates"))
 throttle = LoginThrottle()
+
+
+def initials(name) -> str:
+    """Letters for a lead's round avatar: first and last word, '?' when there is no name yet."""
+    words = (name or "").split()
+    if not words:
+        return "?"
+    return (words[0][0] + (words[-1][0] if len(words) > 1 else "")).upper()
+
+
+def about(lead, extra=None) -> str:
+    """The muted line under a lead's name: class · course · extra, leaving out what is not known yet."""
+    student_class = lead.student_class or ""
+    if student_class and not student_class.lower().startswith("class"):  # the model often saves "Class 11" itself
+        student_class = f"Class {student_class}"
+    return " · ".join(part for part in (student_class, lead.course, extra) if part) or "No details yet"
+
+
+templates.env.filters["initials"] = initials
+templates.env.filters["about"] = about
 EXAMPLE_FACTS = (Path(__file__).resolve().parents[2] / "examples" / "brightpath.yaml").read_text(encoding="utf-8")
 
 STAGES = ("new", "collecting", "qualified", "handed_off", "closed")
@@ -75,7 +95,7 @@ def _institute(session, user, slug):
 def _home(session, user) -> str:
     if user.role == "admin":
         return "/dash/admin/institutes"
-    return f"/dash/{repo.get_institute(session, user.institute_id).slug}/leads"
+    return f"/dash/{repo.get_institute(session, user.institute_id).slug}/home"
 
 
 def _local(institute):
@@ -358,3 +378,19 @@ def stats_page(request: Request, slug: str):
         institute = _institute(session, user, slug)
         stats = repo.lead_stats(session, institute.id, institute.timezone, utcnow())
         return _render(request, "stats.html", {"user": user, "institute": institute, "stats": stats})
+
+
+@router.get("/{slug}/home", response_class=HTMLResponse)
+def home_page(request: Request, slug: str):
+    with session_scope() as session:
+        user = _user(session, request)
+        institute = _institute(session, user, slug)
+        return _render(
+            request,
+            "home.html",
+            {
+                "user": user, "institute": institute, "local": _local(institute),
+                "summary": repo.home_summary(session, institute.id, institute.timezone, utcnow()),
+                "intro_name": institute.name if user.role == "owner" else "VidyaDesk",
+            },
+        )

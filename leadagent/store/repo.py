@@ -314,5 +314,24 @@ def lead_stats(session, institute_id, timezone_name, now, days=14):
     }
 
 
+def home_summary(session, institute_id, timezone_name, now, latest=8):
+    """What the owner's Home screen shows: today's numbers, the leads waiting for them, and the newest leads."""
+    midnight = datetime.combine(now.astimezone(ZoneInfo(timezone_name)).date(), time.min, tzinfo=ZoneInfo(timezone_name))
+    mine = select(Lead).where(Lead.institute_id == institute_id)
+
+    def count(*conditions):
+        return session.scalar(select(func.count()).select_from(Lead).where(Lead.institute_id == institute_id, *conditions))
+
+    return {
+        "new_today": count(Lead.created_at >= midnight),
+        "hot": count(Lead.interest == "hot", Lead.stage != "closed"),
+        "waiting": count(Lead.stage == "handed_off"),
+        "needs_you": list(
+            session.scalars(mine.where(Lead.stage == "handed_off").order_by(Lead.last_user_msg_at.asc().nulls_last(), Lead.id))
+        ),
+        "latest": list(session.scalars(mine.order_by(Lead.id.desc()).limit(latest))),
+    }
+
+
 def all_institutes(session):
     return list(session.scalars(select(Institute).order_by(Institute.id)))
