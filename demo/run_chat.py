@@ -7,7 +7,6 @@ shows only text from that file.
     .\\.venv\\Scripts\\python demo\\run_chat.py
 """
 import json
-import os
 import sys
 import time
 from datetime import datetime, timezone
@@ -18,19 +17,11 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 
 
-def _use_test_database() -> None:
-    """Point the app at the test database before anything imports its settings. Refuses any other database."""
-    from dotenv import dotenv_values
-
-    test_db = os.environ.get("TEST_DATABASE_URL") or dotenv_values(ROOT / ".env").get("TEST_DATABASE_URL") or ""
-    if not test_db.rstrip("/").endswith("leadagent_test"):
-        sys.exit("refusing to run: TEST_DATABASE_URL must point at the leadagent_test database")
-    os.environ["DATABASE_URL"] = test_db
-
-
 if __name__ == "__main__":
     sys.path.insert(0, str(ROOT))
-    _use_test_database()
+    from testdb import use_test_database
+
+    use_test_database()
 
 from leadagent.channels.base import IncomingMsg  # noqa: E402
 from leadagent.pipeline import FALLBACK, process  # noqa: E402
@@ -93,6 +84,9 @@ def main() -> int:
     from leadagent.settings import get_settings
     from leadagent.store.db import create_tables, engine
 
+    from testdb import assert_test_database
+
+    assert_test_database(engine)
     create_tables()
     with engine.begin() as conn:  # the test database is scratch space; start from a clean sample institute
         conn.execute(text("TRUNCATE institutes, leads, messages, documents, chunks, users, checkpoints, "

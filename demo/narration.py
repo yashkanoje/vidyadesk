@@ -26,7 +26,7 @@ SCENES = [
     {"id": "handoff", "title": "Hands off to a person", "line": "When a parent wants a person, it hands the chat to the owner, and passes on any new messages."},
     {"id": "dashboard", "title": "The dashboard", "line": "Every enquiry lands in the VidyaDesk dashboard: who needs a call, every conversation, and a CSV for Excel."},
     {"id": "followup", "title": "Never forgets to follow up", "line": "If a student goes quiet, it follows up once, politely. Every morning at eight, the owner gets a summary."},
-    {"id": "hood", "title": "Under the hood", "line": "Under the hood: a LangGraph agent, document search with pgvector, and measured results: twenty-six of twenty-six behaviour checks, and three hundred and sixteen automated tests."},
+    {"id": "hood", "title": "Under the hood", "line": "Under the hood: a LangGraph agent, document search with pgvector, and measured results: twenty-six of twenty-six behaviour checks, and more than three hundred automated tests."},
     {"id": "close", "title": "Close", "line": "VidyaDesk. Every enquiry answered. Every lead captured."},
 ]
 

@@ -46,3 +46,15 @@ def test_narration_lines_match_the_approved_storyboard():
     assert len(SCENES) == 10
     assert SCENES[0]["line"] == "It's 10:42 at night. A parent asks about JEE fees, and the institute is closed."
     assert SCENES[9]["line"] == "VidyaDesk. Every enquiry answered. Every lead captured."
+
+
+def test_destructive_demo_steps_refuse_any_database_but_the_test_one():
+    # 26 Oct 2026: shots.py truncated the MAIN database because the engine was bound before the env var changed.
+    # The guard must check the live connection, not the setting.
+    from sqlalchemy import create_engine
+
+    from testdb import assert_test_database
+
+    with pytest.raises(SystemExit, match="leadagent_test"):
+        assert_test_database(create_engine("postgresql+psycopg://user@localhost/leadagent"))
+    assert_test_database(create_engine("postgresql+psycopg://user@localhost/leadagent_test"))  # no error
