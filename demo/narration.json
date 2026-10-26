@@ -1,0 +1,86 @@
+{
+  "voice": "en-IN-PrabhatNeural",
+  "gap": 0.6,
+  "scenes": [
+    {
+      "id": "hook",
+      "title": "Hook",
+      "line": "It's 10:42 at night. A parent asks about JEE fees, and the institute is closed.",
+      "audio": "build/audio/scene-01.mp3",
+      "duration": 7.872,
+      "hold": 1.0
+    },
+    {
+      "id": "problem",
+      "title": "The problem",
+      "line": "Most enquiries arrive in the evening or during class. When nobody replies, the student asks the next institute.",
+      "audio": "build/audio/scene-02.mp3",
+      "duration": 9.696,
+      "hold": 0.5
+    },
+    {
+      "id": "meet",
+      "title": "Meet VidyaDesk",
+      "line": "Meet VidyaDesk, an AI assistant for coaching institutes.",
+      "audio": "build/audio/scene-03.mp3",
+      "duration": 5.088,
+      "hold": 1.5
+    },
+    {
+      "id": "answer",
+      "title": "Instant answer, any language",
+      "line": "It answers fees, batches and timings from the institute's own facts, with exact numbers, in English, Hindi, Hinglish or Odia.",
+      "audio": "build/audio/scene-04.mp3",
+      "duration": 10.632,
+      "hold": 10.0
+    },
+    {
+      "id": "lead",
+      "title": "Lead captured, owner alerted",
+      "line": "While it chats, it saves the student's name, class and course, rates their interest, and alerts the owner the moment a lead is hot.",
+      "audio": "build/audio/scene-05.mp3",
+      "duration": 10.272,
+      "hold": 3.0
+    },
+    {
+      "id": "handoff",
+      "title": "Hands off to a person",
+      "line": "When a parent wants a person, it hands the chat to the owner, and passes on any new messages.",
+      "audio": "build/audio/scene-06.mp3",
+      "duration": 7.68,
+      "hold": 3.0
+    },
+    {
+      "id": "dashboard",
+      "title": "The dashboard",
+      "line": "Every enquiry lands in the VidyaDesk dashboard: who needs a call, every conversation, and a CSV for Excel.",
+      "audio": "build/audio/scene-07.mp3",
+      "duration": 9.048,
+      "hold": 7.0
+    },
+    {
+      "id": "followup",
+      "title": "Never forgets to follow up",
+      "line": "If a student goes quiet, it follows up once, politely. Every morning at eight, the owner gets a summary.",
+      "audio": "build/audio/scene-08.mp3",
+      "duration": 9.144,
+      "hold": 2.0
+    },
+    {
+      "id": "hood",
+      "title": "Under the hood",
+      "line": "Under the hood: a LangGraph agent, document search with pgvector, and measured results: twenty-six of twenty-six behaviour checks, and three hundred and sixteen automated tests.",
+      "audio": "build/audio/scene-09.mp3",
+      "duration": 13.008,
+      "hold": 5.0
+    },
+    {
+      "id": "close",
+      "title": "Close",
+      "line": "VidyaDesk. Every enquiry answered. Every lead captured.",
+      "audio": "build/audio/scene-10.mp3",
+      "duration": 6.528,
+      "hold": 3.0
+    }
+  ]
+}

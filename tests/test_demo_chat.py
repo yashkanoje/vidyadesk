@@ -37,3 +37,12 @@ def test_a_fallback_reply_stops_the_run(session):
     failing = build_graph(ScriptedModel(RuntimeError("model unavailable")), get_checkpointer())
     with pytest.raises(RuntimeError, match="fallback"):
         run_conversation(institute.id, [{"user_id": "demo-1", "turns": ["Fee?"]}], graph=failing, pause=0)
+
+
+def test_narration_lines_match_the_approved_storyboard():
+    from narration import SCENES, VOICE
+
+    assert VOICE == "en-IN-PrabhatNeural"
+    assert len(SCENES) == 10
+    assert SCENES[0]["line"] == "It's 10:42 at night. A parent asks about JEE fees, and the institute is closed."
+    assert SCENES[9]["line"] == "VidyaDesk. Every enquiry answered. Every lead captured."
