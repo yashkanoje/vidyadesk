@@ -72,7 +72,7 @@ def test_a_fallback_reply_stops_the_run(session, sent):
 ```
 
 - [ ] **Step 2: Run** `.\.venv\Scripts\python -m pytest tests/test_demo_chat.py -q`. Expected: FAIL (module missing).
-- [ ] **Step 3: Implement `demo/run_chat.py`** as above. Create `demo/.venv` with `python -m venv demo\.venv`, then `pip install -e . "edge-tts==7.3.1" "playwright==<current>"`. Pin the exact versions in `requirements.txt`. The project's `.venv` is not touched beyond running the tests.
+- [ ] **Step 3: Implement `demo/run_chat.py`** as above. Create `demo/.venv` with `python -m venv demo\.venv`, then `pip install "edge-tts==7.3.1" playwright`, and pin the exact installed versions in `requirements.txt`. `run_chat.py` and `shots.py` run in the project's `.venv` (they need `leadagent`); `narration.py` and `render.py` run in `demo/.venv`.
 - [ ] **Step 4: Run** the tests (expected PASS), then the full suite (expected: all pass, 1 skipped).
 - [ ] **Step 5: Real run.** `.\.venv\Scripts\python demo\run_chat.py` (Gemini, about 2 minutes with pauses). Expected: `demo/chat-run.json` with 6 replies, none equal to the fallback, at least one `🔥 Hot lead` alert and one `🙋 Handoff` alert. Read every reply and record in the report anything that differs from the storyboard's expectation.
 - [ ] **Step 6: Commit** `demo/run_chat.py demo/requirements.txt demo/.gitignore demo/chat-run.json tests/test_demo_chat.py`: "Demo video: record a real agent run".
@@ -99,7 +99,7 @@ def test_a_fallback_reply_stops_the_run(session, sent):
 ### Task 3: The animated scenes
 
 **Files:**
-- Create: `demo/scenes/index.html` (with its CSS and JS inline), `demo/shots.py`
+- Create: `demo/scenes/index.html` (with its CSS and JS inline), `demo/shots.py`, `demo/render.py` (stills mode only: serves `demo/` on a local `http.server` thread so `fetch` works, opens Playwright Edge at 1920 × 1080, waits for `window.ready`, and saves `seek(t)` for each second in `--stills a,b,c` to `demo/build/stills/`)
 - Output (git-ignored): `demo/build/shots/*.png`
 
 **Interfaces:**
@@ -117,7 +117,7 @@ def test_a_fallback_reply_stops_the_run(session, sent):
   - Scene 9 shows the chips with the spec's numbers.
   - A reply too long for its bubble at 28 px or more is cut at a sentence boundary with "…".
 - [ ] **Step 4: Run** the test (PASS). Then check frames by hand:
-  - Run `demo\.venv\Scripts\python demo\render.py --stills 5,35,55,65,80,105,118` (Task 4's stills mode; build it first if needed). Open each PNG.
+  - Run `demo\.venv\Scripts\python demo\render.py --stills 5,35,55,65,80,105,118`. Open each PNG.
   - Odia and Devanagari must show as real script.
   - Every line must be readable when the image is scaled to 360 px wide.
   - Nothing may overflow.
@@ -128,19 +128,18 @@ def test_a_fallback_reply_stops_the_run(session, sent):
 ### Task 4: Render, mux, publish in the repo
 
 **Files:**
-- Create: `demo/render.py`, `demo/README.md`
+- Create: `demo/README.md`
+- Modify: `demo/render.py` (add the full render; keep `--stills`)
 - Modify: `README.md` (a "Demo" line under the screenshots), `docs/specs/2026-10-13-lead-agent-design.md` (Section 15 row if anything was cut)
 - Output (committed): `docs/demo/vidyadesk-demo.mp4`, `docs/demo/poster.png`
 
 **Interfaces:**
 - Consumes: `window.ready`, `window.seek`, `window.totalDuration` (Task 3); the MP3s and `narration.json` (Task 2).
 - `render.py`:
-  1. Serves `demo/` over a local `http.server` thread, so `fetch` works.
-  2. Opens Playwright Edge at 1920 × 1080.
-  3. For each frame `n` in `range(round(totalDuration * 30))`, calls `seek(n / 30)` and takes a PNG screenshot, piped to `ffmpeg -f image2pipe -framerate 30 -i - -c:v libx264 -pix_fmt yuv420p -crf 20`.
-  4. Builds the audio track by concatenating each MP3 followed by its `gap` of silence, then muxes it in with AAC 160k into `docs/demo/vidyadesk-demo.mp4`.
-  5. Saves the frame at 20 s as `docs/demo/poster.png`.
-  - `--stills a,b,c` saves only those seconds to `demo/build/stills/`.
+  1. Reuses Task 3's local server and Edge page.
+  2. For each frame `n` in `range(round(totalDuration * 30))`, calls `seek(n / 30)` and takes a PNG screenshot, piped to `ffmpeg -f image2pipe -framerate 30 -i - -c:v libx264 -pix_fmt yuv420p -crf 20`.
+  3. Builds the audio track by concatenating each MP3 followed by its `gap` of silence, then muxes it in with AAC 160k into `docs/demo/vidyadesk-demo.mp4`.
+  4. Saves the frame at 20 s as `docs/demo/poster.png`.
 
 - [ ] **Step 1: Render** with `demo\.venv\Scripts\python demo\render.py`. Expected: the MP4 exists; `ffprobe` shows 1920x1080, 30 fps, h264 + aac, the duration within 0.2 s of `totalDuration`, and a size under 30 MB (if not, raise CRF to 23 and re-render).
 - [ ] **Step 2: Watch the whole video once**:
