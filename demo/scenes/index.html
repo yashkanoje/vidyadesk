@@ -68,9 +68,9 @@
   .ring path { fill: var(--accent); transform-origin: 42px 42px; }
 
   /* diagram */
-  .node { position: absolute; background: #fff; border-radius: 22px; box-shadow: var(--shadow); padding: 22px 26px; font-size: 26px;
+  .node { position: absolute; background: #fff; border-radius: 22px; box-shadow: var(--shadow); padding: 16px 18px; font-size: 22px;
           line-height: 1.3; text-align: center; opacity: 0; border: 3px solid transparent; }
-  .node b { display: block; font-size: 30px; color: var(--accent); }
+  .node b { display: block; font-size: 28px; color: var(--accent); margin-bottom: 4px; }
   .arrow { position: absolute; height: 6px; background: var(--accent); border-radius: 3px; transform-origin: left center; }
   .chip { display: inline-block; font-size: 28px; font-weight: 700; padding: 14px 26px; border-radius: 99px; background: #fff;
           box-shadow: 0 4px 16px rgba(60,40,20,.12); margin: 10px; opacity: 0; }
@@ -138,9 +138,11 @@
       const sub = text("p", "lead-text", "A parent has a question.");
       left.append(clock, sub);
       const ph = phone(1240, 150, "BrightPath Classes", "Telegram chat");
-      const q = bubble(ph.chat, "u", d.en[0].user, "10:42 PM");
-      root.append(left, ph.root);
-      return (t) => { show(clock, prog(t, 0.2, 0.8)); show(sub, prog(t, 1.0, 0.8)); show(ph.root, prog(t, 0.6, 0.8), 60); show(q, prog(t, 2.0, 0.6)); };
+      const q = bubble(ph.chat, "u", d.en[0].user);
+      const example = place(text("div", "abs", "Example scene"), 1240, 100, 430);
+      Object.assign(example.style, { textAlign: "center", fontSize: "22px", fontWeight: 700, color: "var(--faint)", letterSpacing: ".08em", textTransform: "uppercase" });
+      root.append(left, ph.root, example);
+      return (t) => { show(example, prog(t, 0.6, 0.6)); show(clock, prog(t, 0.2, 0.8)); show(sub, prog(t, 1.0, 0.8)); show(ph.root, prog(t, 0.6, 0.8), 60); show(q, prog(t, 2.0, 0.6)); };
     },
     problem(root, d) {
       const left = place(el("div", "abs"), 150, 260, 960);
@@ -150,11 +152,13 @@
       l2.style.marginTop = "30px"; l3.style.marginTop = "16px";
       left.append(l1, l2, l3);
       const ph = phone(1240, 150, "BrightPath Classes", "Telegram chat");
-      const q = bubble(ph.chat, "u", d.en[0].user, "10:42 PM");
+      const q = bubble(ph.chat, "u", d.en[0].user);
       q.style.opacity = 1;
-      const clock = place(text("div", "abs", ""), 1240, 100, 430);
+      const clock = place(text("div", "abs", ""), 1180, 100, 550);
+      const example = place(text("div", "abs", "Example scene"), 1180, 62, 550);
+      Object.assign(example.style, { textAlign: "center", fontSize: "20px", fontWeight: 700, color: "var(--faint)", letterSpacing: ".08em", textTransform: "uppercase" });
       Object.assign(clock.style, { textAlign: "center", fontSize: "30px", fontWeight: 700, color: "#8a7766" });
-      root.append(left, ph.root, clock);
+      root.append(left, ph.root, clock, example);
       const times = ["10:42 PM", "11:30 PM", "7:15 AM", "9:05 AM"];
       return (t, dur) => {
         show(l1, prog(t, 0.2, 0.6)); show(l2, prog(t, 2.0, 0.6)); show(l3, prog(t, 5.0, 0.6));
@@ -183,7 +187,7 @@
       const parts = cols.map((c, i) => {
         const x = 175 + i * 560;
         const label = place(text("div", "lang", c.label), x, 205);
-        const ph = phone(x, 250, "BrightPath Classes", "online");
+        const ph = phone(x, 250, "BrightPath Classes", "Telegram chat");
         ph.root.style.height = "660px";
         const u = bubble(ph.chat, "u", c.run.user); const dots = typing(ph.chat); const a = bubble(ph.chat, "a", trim(c.run.reply));
         root.append(label, ph.root);
@@ -192,7 +196,7 @@
       return (t) => { show(head, prog(t, 0, 0.6)); parts.forEach((p) => { show(p.label, prog(t, p.start - 0.4, 0.5)); show(p.ph.root, prog(t, p.start - 0.4, 0.6), 50); exchange(t, p.start, p.u, p.dots, p.a); }); };
     },
     lead(root, d) {
-      const ph = phone(120, 150, "BrightPath Classes", "online");
+      const ph = phone(120, 150, "BrightPath Classes", "Telegram chat");
       const u = bubble(ph.chat, "u", d.en[1].user); const dots = typing(ph.chat); const a = bubble(ph.chat, "a", trim(d.en[1].reply));
       const card = place(el("div", "card"), 640, 250, 640);
       const lead = d.lead;
@@ -215,14 +219,14 @@
       };
     },
     handoff(root, d) {
-      const ph = phone(240, 150, "BrightPath Classes", "online");
+      const ph = phone(240, 150, "BrightPath Classes", "Telegram chat");
       const u1 = bubble(ph.chat, "u", d.en[2].user); const k1 = typing(ph.chat); const a1 = bubble(ph.chat, "a", trim(d.en[2].reply));
       const u2 = bubble(ph.chat, "u", d.en[3].user); const k2 = typing(ph.chat); const a2 = bubble(ph.chat, "a", trim(d.en[3].reply));
       const label = place(text("div", "lang", "Owner's Telegram"), 1240, 105);
       const owner = phone(1240, 150, "BrightPath Classes bot", "messages for the owner");
       const h = alertCard(owner.chat, d.alerts.find((x) => x.startsWith("🙋")) || "");
       const r = alertCard(owner.chat, d.alerts.find((x) => x.startsWith("💬")) || "");
-      const mid = place(text("p", "abs lead-text", "A person takes over.\nNew messages go to the owner."), 720, 420, 480);
+      const mid = place(text("p", "abs lead-text", "The assistant steps back.\nNew messages go to the owner."), 720, 420, 480);
       Object.assign(mid.style, { whiteSpace: "pre-line", textAlign: "center", fontWeight: 700, color: "var(--accent)" });
       root.append(ph.root, label, owner.root, mid);
       return (t) => {
@@ -258,7 +262,7 @@
     followup(root, d) {
       const left = place(el("div", "card"), 150, 240, 760);
       left.append(text("p", "lead-text", "A lead went quiet?"));
-      const rule = text("p", "lead-text", "One polite follow-up, 2 to 20 hours after the last message, only between 9 am and 9 pm.");
+      const rule = text("p", "lead-text", "One polite follow-up, 2 to 20 hours after the student's last message, only between 9 am and 9 pm.");
       rule.style.cssText = "font-size:34px;margin-top:18px;color:#4a3a2c";
       const once = text("span", "pill", "Once. Never twice."); once.style.cssText += ";margin-top:22px;background:#dff3ec;color:#0f766e";
       left.append(rule, once);
@@ -273,15 +277,23 @@
       const head = place(text("h1", "abs", "Under the hood"), 0, 70, 1920);
       Object.assign(head.style, { textAlign: "center", fontSize: "52px", fontWeight: 800 });
       root.append(head);
+      // One row of equal boxes, evenly spaced; Owner sits centred under Tools.
+      const W = 330, H = 160, GAP = 48, Y = 220, X0 = (1920 - (5 * W + 4 * GAP)) / 2;
+      const col = (i) => X0 + i * (W + GAP);
       const nodes = [
-        [70, 300, 270, "Student", "Telegram / WhatsApp"], [400, 300, 250, "Gate", "limits · handoffs"],
-        [710, 270, 360, "LangGraph agent", "Gemini or Claude"], [1130, 210, 330, "Tools", "save lead · rate interest\nhandoff · search docs"],
-        [1520, 210, 330, "PostgreSQL", "+ pgvector search"], [1130, 450, 330, "Owner", "alerts · dashboard"]];
-      const ns = nodes.map(([x, y, w, title, sub]) => { const n = place(el("div", "node"), x, y, w); n.append(text("b", null, title)); n.append(text("span", null, sub)); n.style.whiteSpace = "pre-line"; root.append(n); return n; });
-      const arrows = [[340, 360, 60], [650, 360, 60], [1070, 330, 60], [1460, 300, 60]].map(([x, y, w]) => { const a = place(el("div", "arrow"), x, y, w); root.append(a); return a; });
-      const down = place(el("div", "arrow"), 1292, 372, 6, 74); down.style.transformOrigin = "center top"; root.append(down);
-      const chips = place(el("div", "abs"), 100, 640, 1720); chips.style.textAlign = "center";
-      const labels = [["LangGraph", false], ["RAG on pgvector", false], ["26/26 behaviour checks", true], ["21/21 retrieval in the top 3", true],
+        [col(0), Y, "Student", "Telegram / WhatsApp"], [col(1), Y, "Gate", "limits · handoffs"],
+        [col(2), Y, "LangGraph agent", "Gemini or Claude"], [col(3), Y, "Tools", "save lead · rate interest\nhandoff · search docs"],
+        [col(4), Y, "PostgreSQL", "+ pgvector search"], [col(3), Y + H + 90, "Owner", "alerts · dashboard"]];
+      const ns = nodes.map(([x, y, title, sub]) => {
+        const n = place(el("div", "node"), x, y, W, H);
+        Object.assign(n.style, { display: "flex", flexDirection: "column", justifyContent: "center", whiteSpace: "pre-line" });
+        n.append(text("b", null, title)); n.append(text("span", null, sub)); root.append(n); return n;
+      });
+      const arrows = [0, 1, 2, 3].map((i) => { const a = place(el("div", "arrow"), col(i) + W, Y + H / 2 - 3, GAP); root.append(a); return a; });
+      const down = place(el("div", "arrow"), col(3) + W / 2 - 3, Y + H, 6, 90); down.style.transformOrigin = "center top"; root.append(down);
+      const chips = place(el("div", "abs"), 120, 640, 1680);
+      Object.assign(chips.style, { display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "4px 0" });
+      const labels = [["LangGraph", false], ["RAG on pgvector", false], ["26/26 behaviour checks (one run)", true], ["21/21 retrieval in the top 3", true],
                       ["300+ automated tests", true], ["Each institute sees only its own data", false]];
       const cs = labels.map(([l, hot]) => { const c = text("span", "chip" + (hot ? " hot" : ""), l); chips.append(c); return c; });
       root.append(chips);
@@ -310,6 +322,24 @@
   const brand = document.getElementById("brand"), caption = document.getElementById("caption"), bar = document.getElementById("progress");
   brand.innerHTML = mark(52) + "<span>VidyaDesk</span>";
 
+  // A chat that overflows its phone loses whole sentences from the end of its longest reply, marked "…".
+  // If that is not enough, the page fails, so the render stops instead of clipping text mid-sentence.
+  function fitChats() {
+    for (const section of document.querySelectorAll(".scene")) {
+      section.style.display = "";
+      for (const chat of section.querySelectorAll(".chat")) {
+        while (chat.scrollHeight > chat.clientHeight + 1) {
+          const replies = [...chat.querySelectorAll(".bubble.a")].filter((b) => b.textContent.split(/(?<=[.?!।])\s+/).length > 1);
+          if (!replies.length) throw new Error("a chat does not fit its phone even after cutting: " + chat.textContent.slice(0, 80));
+          const longest = replies.reduce((a, b) => (b.textContent.length > a.textContent.length ? b : a));
+          const sentences = longest.textContent.replace(/\s*…$/, "").split(/(?<=[.?!।])\s+/);
+          longest.textContent = sentences.slice(0, -1).join(" ") + " …";
+        }
+      }
+      section.style.display = "none";
+    }
+  }
+
   function loadImage(src) { return new Promise((ok, fail) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => fail(new Error("missing " + src)); i.src = src; }); }
 
   window.ready = (async () => {
@@ -329,6 +359,7 @@
     }
     window.totalDuration = start;
     await Promise.all([...document.images].map((i) => (i.decode ? i.decode().catch(() => {}) : null)));
+    fitChats();
     window.seek(0);
   })();
 

@@ -6,7 +6,8 @@ institutes. Design and storyboard: [docs/specs/2026-10-26-demo-video-design.md](
 **What is real in it:** every chat line, the saved lead, the owner alerts and the morning summary come from a real
 run of the agent (Gemini, on the test database, with fictional students), recorded in `chat-run.json` and
 `digest.json`. The only edit is cutting the assistant's "I am an automated assistant…" sentence, shown as "…".
-The dashboard images are screenshots of the real app holding that same data.
+The dashboard images are screenshots of the real app holding the same text (the dates and times on them are when the
+screenshots were taken). The opening two scenes (10:42 pm, no reply) are a staged example and are labelled "Example scene".
 
 ## Rebuild
 
