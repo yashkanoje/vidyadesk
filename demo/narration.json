@@ -69,9 +69,9 @@
     {
       "id": "hood",
       "title": "Under the hood",
-      "line": "Under the hood: a LangGraph agent, document search with pgvector, and measured results: twenty-six of twenty-six behaviour checks, and three hundred and sixteen automated tests.",
+      "line": "Under the hood: a LangGraph agent, document search with pgvector, and measured results: twenty-six of twenty-six behaviour checks, and more than three hundred automated tests.",
       "audio": "build/audio/scene-09.mp3",
-      "duration": 13.008,
+      "duration": 12.792,
       "hold": 5.0
     },
     {

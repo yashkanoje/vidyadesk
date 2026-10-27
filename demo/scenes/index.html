@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>VidyaDesk demo scenes</title>
+<!--
+  The demo video, one frame at a time. render.py opens this page, waits for window.ready, then calls
+  window.seek(t) for every frame. Every chat line, lead field, alert and the morning summary are read from the
+  recorded run (chat-run.json, digest.json); the voice lines and timing from narration.json. Nothing here is typed in.
+-->
+<style>
+  :root { --bg: #fbf8f3; --ink: #2b2118; --muted: #8a7766; --faint: #a8937d; --accent: #c2410c; --soft: #ffe8cc;
+          --card: #fff; --border: #efe6da; --shadow: 0 10px 40px rgba(60,40,20,.14); }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); }
+  body { font-family: "Segoe UI", system-ui, "Nirmala UI", sans-serif; color: var(--ink); }
+  #stage { position: relative; width: 1920px; height: 1080px; overflow: hidden;
+           background: radial-gradient(1200px 700px at 78% 18%, #fff1e0 0%, rgba(251,248,243,0) 60%), var(--bg); }
+  .scene { position: absolute; inset: 0; opacity: 0; }
+  .abs { position: absolute; }
+  .brand { position: absolute; left: 64px; top: 48px; display: flex; align-items: center; gap: 14px; font-weight: 800;
+           font-size: 30px; color: var(--accent); z-index: 5; }
+  .caption { position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); max-width: 1440px; text-align: center;
+             font-size: 25px; line-height: 1.35; color: #3a2c20; background: rgba(255,255,255,.82); padding: 14px 28px;
+             border-radius: 18px; box-shadow: 0 4px 18px rgba(60,40,20,.08); z-index: 6; }
+  .progress { position: absolute; left: 0; bottom: 0; height: 8px; background: var(--accent); z-index: 7; }
+  h1.big { font-size: 96px; font-weight: 800; letter-spacing: -.02em; line-height: 1.05; }
+  .lead-text { font-size: 44px; line-height: 1.3; color: #4a3a2c; }
+  .muted { color: var(--muted); }
+
+  /* phone */
+  .phone { position: absolute; width: 430px; height: 780px; border-radius: 52px; background: #1f1712; padding: 14px;
+           box-shadow: 0 30px 80px rgba(60,40,20,.28); }
+  .screen { width: 100%; height: 100%; border-radius: 40px; background: #f3ece2; overflow: hidden; display: flex; flex-direction: column; }
+  .bar { height: 92px; background: #fff; display: flex; align-items: center; gap: 14px; padding: 30px 22px 0; border-bottom: 1px solid var(--border); flex: none; }
+  .bar .av { width: 46px; height: 46px; border-radius: 50%; background: var(--soft); color: var(--accent); display: grid; place-items: center; font-weight: 800; font-size: 18px; flex: none; }
+  .bar b { display: block; font-size: 21px; } .bar small { font-size: 15px; color: var(--muted); }
+  .chat { flex: 1; padding: 18px 16px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+  .bubble { max-width: 88%; padding: 12px 16px; border-radius: 20px; font-size: 21px; line-height: 1.38; white-space: pre-line;
+            box-shadow: 0 2px 6px rgba(60,40,20,.08); opacity: 0; }
+  .bubble small { display: block; font-size: 13px; margin-top: 6px; opacity: .7; }
+  .u { align-self: flex-start; background: #fff; border-bottom-left-radius: 6px; }
+  .a { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 6px; }
+  .typing { align-self: flex-end; background: #ffd9b8; border-radius: 20px; padding: 14px 18px; opacity: 0; }
+  .typing i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); margin: 0 3px; }
+  .lang { position: absolute; font-size: 28px; font-weight: 700; color: var(--accent); text-align: center; width: 430px; }
+
+  /* telegram-style alert */
+  .alert { background: #fff; border-radius: 22px; padding: 18px 20px; font-size: 21px; line-height: 1.45; white-space: pre-line;
+           box-shadow: 0 6px 24px rgba(60,40,20,.16); border-left: 6px solid var(--accent); opacity: 0; }
+  .alert .from { font-size: 15px; font-weight: 700; color: var(--muted); margin-bottom: 6px; display: block; }
+
+  /* lead card */
+  .card { position: absolute; background: #fff; border-radius: 28px; box-shadow: var(--shadow); padding: 30px 34px; }
+  .leadrow { display: flex; align-items: center; gap: 20px; }
+  .leadrow .av { width: 84px; height: 84px; border-radius: 50%; background: var(--soft); color: var(--accent); display: grid; place-items: center; font-weight: 800; font-size: 32px; flex: none; }
+  .pill { display: inline-block; font-size: 22px; font-weight: 800; padding: 6px 18px; border-radius: 99px; background: #ffe4e1; color: #c0262d; }
+  .field { font-size: 26px; margin-top: 14px; opacity: 0; display: flex; gap: 16px; } .field span { color: var(--muted); flex: none; width: 120px; }
+
+  /* laptop */
+  .laptop { position: absolute; border-radius: 22px; background: #1f1712; padding: 16px; box-shadow: 0 30px 80px rgba(60,40,20,.28); }
+  .laptop img, .phone img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; border-radius: 10px; }
+  .shot { position: absolute; inset: 16px; opacity: 0; }
+  .shot img { border-radius: 10px; }
+
+  /* logo */
+  .ring circle { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; stroke-dasharray: 240; }
+  .ring path { fill: var(--accent); transform-origin: 42px 42px; }
+
+  /* diagram */
+  .node { position: absolute; background: #fff; border-radius: 22px; box-shadow: var(--shadow); padding: 22px 26px; font-size: 26px;
+          line-height: 1.3; text-align: center; opacity: 0; border: 3px solid transparent; }
+  .node b { display: block; font-size: 30px; color: var(--accent); }
+  .arrow { position: absolute; height: 6px; background: var(--accent); border-radius: 3px; transform-origin: left center; }
+  .chip { display: inline-block; font-size: 28px; font-weight: 700; padding: 14px 26px; border-radius: 99px; background: #fff;
+          box-shadow: 0 4px 16px rgba(60,40,20,.12); margin: 10px; opacity: 0; }
+  .chip.hot { background: var(--accent); color: #fff; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="brand" id="brand"></div>
+  <div id="scenes"></div>
+  <div class="caption" id="caption"></div>
+  <div class="progress" id="progress"></div>
+</div>
+<script>
+(function () {
+  "use strict";
+  const MARK = '<svg class="ring" viewBox="0 0 84 84" width="SIZE" height="SIZE" aria-hidden="true"><circle cx="42" cy="42" r="38"/>' +
+    '<path d="M22 30c7-2 14-1 20 3v24c-6-4-13-5-20-3zM62 30c-7-2-14-1-20 3v24c6-4 13-5 20-3z"/></svg>';
+  const mark = (size) => MARK.replace(/SIZE/g, size);
+  // The model's "I am an automated assistant" sentence is cut (whole sentence only, shown as "…"); nothing is reworded.
+  const DISCLOSURE = ["automated assistant", "ऑटोमेटेड असिस्टेंट", "ସ୍ୱୟଂଚାଳିତ ସହାୟକ"];
+
+  const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+  const prog = (t, start, len) => clamp((t - start) / len);
+  const ease = (x) => 1 - Math.pow(1 - x, 3);
+  const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+  const text = (tag, cls, value) => { const e = el(tag, cls); e.textContent = value; return e; };
+  const place = (e, x, y, w, h) => { Object.assign(e.style, { left: x + "px", top: y + "px" }); if (w) e.style.width = w + "px"; if (h) e.style.height = h + "px"; return e; };
+  const show = (e, p, dy = 24) => { e.style.opacity = ease(p); e.style.transform = `translateY(${(1 - ease(p)) * dy}px)`; };
+  const initials = (name) => { const w = (name || "").trim().split(/\s+/).filter(Boolean); return w.length ? (w[0][0] + (w.length > 1 ? w[w.length - 1][0] : "")).toUpperCase() : "?"; };
+
+  function trim(reply) {
+    const sentences = reply.split(/(?<=[.?!।])\s+/);
+    const kept = sentences.filter((s) => !DISCLOSURE.some((d) => s.includes(d)));
+    return (kept.length < sentences.length ? "… " : "") + kept.join(" ");
+  }
+
+  function phone(x, y, title, subtitle) {
+    const p = place(el("div", "phone"), x, y);
+    const screen = el("div", "screen");
+    const bar = el("div", "bar");
+    bar.append(el("span", "av", initials(title)), el("div", null));
+    bar.lastChild.append(text("b", null, title), text("small", null, subtitle));
+    const chat = el("div", "chat");
+    screen.append(bar, chat);
+    p.append(screen);
+    return { root: p, chat };
+  }
+  const bubble = (chat, who, value, stamp) => { const b = text("div", "bubble " + who, value); if (stamp) b.append(text("small", null, stamp)); chat.append(b); return b; };
+  const typing = (chat) => { const t = el("div", "typing", "<i></i><i></i><i></i>"); chat.append(t); return t; };
+  const alertCard = (parent, value) => { const a = el("div", "alert"); a.append(text("span", "from", "BrightPath Classes bot")); a.append(document.createTextNode(value)); parent.append(a); return a; };
+
+  // Reveal a user bubble, typing dots, then the reply, starting at `start` seconds into the scene.
+  function exchange(t, start, user, dots, reply) {
+    show(user, prog(t, start, 0.5));
+    const typingOn = t > start + 0.8 && t < start + 2.0;
+    dots.style.opacity = typingOn ? 1 : 0; dots.style.display = t < start + 2.0 ? "" : "none";
+    show(reply, prog(t, start + 2.0, 0.5));
+  }
+
+  const SCENES = {
+    hook(root, d) {
+      const left = place(el("div", "abs"), 150, 300, 900);
+      const clock = text("h1", "big", "10:42 PM");
+      const sub = text("p", "lead-text", "A parent has a question.");
+      left.append(clock, sub);
+      const ph = phone(1240, 150, "BrightPath Classes", "Telegram chat");
+      const q = bubble(ph.chat, "u", d.en[0].user, "10:42 PM");
+      root.append(left, ph.root);
+      return (t) => { show(clock, prog(t, 0.2, 0.8)); show(sub, prog(t, 1.0, 0.8)); show(ph.root, prog(t, 0.6, 0.8), 60); show(q, prog(t, 2.0, 0.6)); };
+    },
+    problem(root, d) {
+      const left = place(el("div", "abs"), 150, 260, 960);
+      const l1 = text("h1", "big", "No reply.");
+      const l2 = text("p", "lead-text", "Classes are on. The office is closed.");
+      const l3 = text("p", "lead-text", "So the student asks the next institute.");
+      l2.style.marginTop = "30px"; l3.style.marginTop = "16px";
+      left.append(l1, l2, l3);
+      const ph = phone(1240, 150, "BrightPath Classes", "Telegram chat");
+      const q = bubble(ph.chat, "u", d.en[0].user, "10:42 PM");
+      q.style.opacity = 1;
+      const clock = place(text("div", "abs", ""), 1240, 100, 430);
+      Object.assign(clock.style, { textAlign: "center", fontSize: "30px", fontWeight: 700, color: "#8a7766" });
+      root.append(left, ph.root, clock);
+      const times = ["10:42 PM", "11:30 PM", "7:15 AM", "9:05 AM"];
+      return (t, dur) => {
+        show(l1, prog(t, 0.2, 0.6)); show(l2, prog(t, 2.0, 0.6)); show(l3, prog(t, 5.0, 0.6));
+        clock.textContent = times[Math.min(times.length - 1, Math.floor(prog(t, 0.5, dur - 2) * times.length))] + " · still no reply";
+        q.style.filter = `grayscale(${prog(t, 4, 3)})`; q.style.opacity = 1 - 0.5 * prog(t, 5, 3);
+      };
+    },
+    meet(root) {
+      const box = place(el("div", "abs"), 0, 250, 1920); box.style.textAlign = "center";
+      const logo = el("div", null, mark(220));
+      const name = text("h1", "big", "VidyaDesk"); name.style.color = "var(--accent)"; name.style.marginTop = "26px";
+      const tag = text("p", "lead-text", "An AI enquiry assistant for coaching institutes");
+      box.append(logo, name, tag); root.append(box);
+      const circle = logo.querySelector("circle"), book = logo.querySelector("path");
+      return (t) => {
+        circle.style.strokeDashoffset = 240 * (1 - ease(prog(t, 0.1, 1.2)));
+        book.style.opacity = ease(prog(t, 0.9, 0.5)); book.style.transform = `scale(${0.5 + 0.5 * ease(prog(t, 0.9, 0.5))})`;
+        show(name, prog(t, 1.3, 0.7)); show(tag, prog(t, 2.0, 0.7));
+      };
+    },
+    answer(root, d) {
+      const head = place(text("h1", "abs", "Instant, exact answers, in the parent's language"), 0, 120, 1920);
+      Object.assign(head.style, { textAlign: "center", fontSize: "52px", fontWeight: 800 });
+      root.append(head);
+      const cols = [{ label: "English", run: d.en[0] }, { label: "हिन्दी", run: d.hi[0] }, { label: "ଓଡ଼ିଆ", run: d.or[0] }];
+      const parts = cols.map((c, i) => {
+        const x = 175 + i * 560;
+        const label = place(text("div", "lang", c.label), x, 205);
+        const ph = phone(x, 250, "BrightPath Classes", "online");
+        ph.root.style.height = "660px";
+        const u = bubble(ph.chat, "u", c.run.user); const dots = typing(ph.chat); const a = bubble(ph.chat, "a", trim(c.run.reply));
+        root.append(label, ph.root);
+        return { label, ph, u, dots, a, start: 0.6 + i * 3.2 };
+      });
+      return (t) => { show(head, prog(t, 0, 0.6)); parts.forEach((p) => { show(p.label, prog(t, p.start - 0.4, 0.5)); show(p.ph.root, prog(t, p.start - 0.4, 0.6), 50); exchange(t, p.start, p.u, p.dots, p.a); }); };
+    },
+    lead(root, d) {
+      const ph = phone(120, 150, "BrightPath Classes", "online");
+      const u = bubble(ph.chat, "u", d.en[1].user); const dots = typing(ph.chat); const a = bubble(ph.chat, "a", trim(d.en[1].reply));
+      const card = place(el("div", "card"), 640, 250, 640);
+      const lead = d.lead;
+      const row = el("div", "leadrow"); row.append(el("span", "av", initials(lead.name)), el("div", null));
+      row.lastChild.append(text("div", null, lead.name)); row.lastChild.firstChild.style.cssText = "font-size:38px;font-weight:800";
+      const pill = text("span", "pill", lead.interest === "hot" ? "Hot" : (lead.interest || "")); row.append(pill);
+      card.append(row);
+      const fields = [["Class", lead.student_class], ["Course", lead.course], ["Why", lead.interest_reason]].filter((f) => f[1]).map(([k, v]) => {
+        const f = el("div", "field"); f.append(text("span", null, k)); f.append(document.createTextNode(v)); card.append(f); return f;
+      });
+      const label = place(text("div", "lang", "Owner's Telegram"), 1360, 205);
+      const owner = phone(1360, 250, "BrightPath Classes bot", "messages for the owner"); owner.root.style.height = "640px";
+      const al = alertCard(owner.chat, d.alerts.find((x) => x.startsWith("🔥")) || "");
+      root.append(ph.root, card, label, owner.root);
+      return (t) => {
+        show(ph.root, prog(t, 0, 0.5), 50); exchange(t, 0.4, u, dots, a);
+        show(card, prog(t, 3.2, 0.6), 40); show(pill, prog(t, 4.4, 0.4), 10);
+        fields.forEach((f, i) => show(f, prog(t, 3.8 + i * 0.5, 0.4), 10));
+        show(label, prog(t, 6.0, 0.5)); show(owner.root, prog(t, 6.0, 0.6), 50); show(al, prog(t, 6.8, 0.5), -30);
+      };
+    },
+    handoff(root, d) {
+      const ph = phone(240, 150, "BrightPath Classes", "online");
+      const u1 = bubble(ph.chat, "u", d.en[2].user); const k1 = typing(ph.chat); const a1 = bubble(ph.chat, "a", trim(d.en[2].reply));
+      const u2 = bubble(ph.chat, "u", d.en[3].user); const k2 = typing(ph.chat); const a2 = bubble(ph.chat, "a", trim(d.en[3].reply));
+      const label = place(text("div", "lang", "Owner's Telegram"), 1240, 105);
+      const owner = phone(1240, 150, "BrightPath Classes bot", "messages for the owner");
+      const h = alertCard(owner.chat, d.alerts.find((x) => x.startsWith("🙋")) || "");
+      const r = alertCard(owner.chat, d.alerts.find((x) => x.startsWith("💬")) || "");
+      const mid = place(text("p", "abs lead-text", "A person takes over.\nNew messages go to the owner."), 720, 420, 480);
+      Object.assign(mid.style, { whiteSpace: "pre-line", textAlign: "center", fontWeight: 700, color: "var(--accent)" });
+      root.append(ph.root, label, owner.root, mid);
+      return (t) => {
+        show(ph.root, prog(t, 0, 0.5), 50); exchange(t, 0.3, u1, k1, a1);
+        show(label, prog(t, 2.6, 0.5)); show(owner.root, prog(t, 2.6, 0.6), 50); show(h, prog(t, 3.2, 0.5), -30);
+        show(mid, prog(t, 4.0, 0.6)); exchange(t, 5.2, u2, k2, a2); show(r, prog(t, 7.4, 0.5), -30);
+      };
+    },
+    dashboard(root, d) {
+      const head = place(text("h1", "abs", "Everything in one dashboard"), 0, 70, 1920);
+      Object.assign(head.style, { textAlign: "center", fontSize: "52px", fontWeight: 800 });
+      const lap = place(el("div", "laptop"), 130, 200, 1240, 712);
+      const pages = [["laptop-home", "Home: who needs a call"], ["laptop-conversation", "Every conversation"],
+                     ["laptop-leads", "All leads · CSV for Excel"], ["laptop-stats", "Stats"]];
+      const shots = pages.map(([img]) => { const s = el("div", "shot"); const i = new Image(); i.src = d.img[img].src; s.append(i); lap.append(s); return s; });
+      const tag = place(text("div", "abs", ""), 130, 148, 1240);
+      Object.assign(tag.style, { textAlign: "center", fontSize: "30px", fontWeight: 700, color: "var(--accent)" });
+      const ph = place(el("div", "phone"), 1440, 200); ph.style.width = "340px"; ph.style.height = "712px";
+      const pscreen = el("div", "screen"); ph.append(pscreen);
+      const phoneShots = ["phone-home", "phone-conversation"].map((img) => { const s = el("div", "shot"); s.style.inset = "0"; const i = new Image(); i.src = d.img[img].src; s.append(i); pscreen.append(s); return s; });
+      pscreen.style.position = "relative";
+      root.append(head, lap, tag, ph);
+      return (t, dur) => {
+        show(head, prog(t, 0, 0.5)); show(lap, prog(t, 0, 0.7), 40); show(ph, prog(t, 0.8, 0.7), 60);
+        const slot = (dur - 1) / pages.length;
+        shots.forEach((s, i) => { s.style.opacity = clamp(prog(t, 0.5 + i * slot, 0.5) - (i < pages.length - 1 ? prog(t, 0.5 + (i + 1) * slot, 0.5) : 0)); });
+        const now = Math.min(pages.length - 1, Math.floor(clamp((t - 0.5) / slot, 0, pages.length - 0.001)));
+        tag.textContent = pages[now][1];
+        const half = dur / 2;
+        phoneShots[0].style.opacity = 1 - prog(t, half, 0.5); phoneShots[1].style.opacity = prog(t, half, 0.5);
+      };
+    },
+    followup(root, d) {
+      const left = place(el("div", "card"), 150, 240, 760);
+      left.append(text("p", "lead-text", "A lead went quiet?"));
+      const rule = text("p", "lead-text", "One polite follow-up, 2 to 20 hours after the last message, only between 9 am and 9 pm.");
+      rule.style.cssText = "font-size:34px;margin-top:18px;color:#4a3a2c";
+      const once = text("span", "pill", "Once. Never twice."); once.style.cssText += ";margin-top:22px;background:#dff3ec;color:#0f766e";
+      left.append(rule, once);
+      const label = place(text("div", "lang", "08:00 · Owner's Telegram"), 1150, 115); label.style.width = "560px";
+      const owner = phone(1150, 160, "BrightPath Classes bot", "messages for the owner"); owner.root.style.width = "560px"; owner.root.style.height = "740px";
+      const summary = alertCard(owner.chat, d.digest); summary.style.fontSize = "18px";
+      root.append(left, label, owner.root);
+      return (t) => { show(left, prog(t, 0, 0.6), 40); show(rule, prog(t, 0.6, 0.6)); show(once, prog(t, 2.2, 0.5), 10);
+                      show(label, prog(t, 4.0, 0.5)); show(owner.root, prog(t, 4.0, 0.6), 50); show(summary, prog(t, 4.7, 0.6), -30); };
+    },
+    hood(root) {
+      const head = place(text("h1", "abs", "Under the hood"), 0, 70, 1920);
+      Object.assign(head.style, { textAlign: "center", fontSize: "52px", fontWeight: 800 });
+      root.append(head);
+      const nodes = [
+        [70, 300, 270, "Student", "Telegram / WhatsApp"], [400, 300, 250, "Gate", "limits · handoffs"],
+        [710, 270, 360, "LangGraph agent", "Gemini or Claude"], [1130, 210, 330, "Tools", "save lead · rate interest\nhandoff · search docs"],
+        [1520, 210, 330, "PostgreSQL", "+ pgvector search"], [1130, 450, 330, "Owner", "alerts · dashboard"]];
+      const ns = nodes.map(([x, y, w, title, sub]) => { const n = place(el("div", "node"), x, y, w); n.append(text("b", null, title)); n.append(text("span", null, sub)); n.style.whiteSpace = "pre-line"; root.append(n); return n; });
+      const arrows = [[340, 360, 60], [650, 360, 60], [1070, 330, 60], [1460, 300, 60]].map(([x, y, w]) => { const a = place(el("div", "arrow"), x, y, w); root.append(a); return a; });
+      const down = place(el("div", "arrow"), 1292, 372, 6, 74); down.style.transformOrigin = "center top"; root.append(down);
+      const chips = place(el("div", "abs"), 100, 640, 1720); chips.style.textAlign = "center";
+      const labels = [["LangGraph", false], ["RAG on pgvector", false], ["26/26 behaviour checks", true], ["21/21 retrieval in the top 3", true],
+                      ["300+ automated tests", true], ["Each institute sees only its own data", false]];
+      const cs = labels.map(([l, hot]) => { const c = text("span", "chip" + (hot ? " hot" : ""), l); chips.append(c); return c; });
+      root.append(chips);
+      return (t) => {
+        show(head, prog(t, 0, 0.5));
+        ns.forEach((n, i) => show(n, prog(t, 0.3 + i * 0.5, 0.5), 20));
+        arrows.forEach((a, i) => { a.style.transform = `scaleX(${ease(prog(t, 0.6 + i * 0.5, 0.4))})`; });
+        down.style.transform = `scaleY(${ease(prog(t, 2.4, 0.4))})`;
+        cs.forEach((c, i) => show(c, prog(t, 4.0 + i * 0.9, 0.5), 16));
+      };
+    },
+    close(root) {
+      const box = place(el("div", "abs"), 0, 230, 1920); box.style.textAlign = "center";
+      const logo = el("div", null, mark(170));
+      const name = text("h1", "big", "VidyaDesk"); name.style.cssText = "color:var(--accent);margin-top:20px";
+      const line = text("p", "lead-text", "Every enquiry answered. Every lead captured."); line.style.marginTop = "18px";
+      const url = text("p", "lead-text", "github.com/yashkanoje/vidyadesk"); url.style.cssText = "margin-top:40px;font-weight:700;color:var(--ink)";
+      box.append(logo, name, line, url); root.append(box);
+      const circle = logo.querySelector("circle"), book = logo.querySelector("path");
+      return (t) => { circle.style.strokeDashoffset = 240 * (1 - ease(prog(t, 0, 1))); book.style.opacity = ease(prog(t, 0.6, 0.5));
+                      show(name, prog(t, 0.8, 0.6)); show(line, prog(t, 1.6, 0.6)); show(url, prog(t, 3.0, 0.6)); };
+    },
+  };
+
+  let timeline = [];
+  const brand = document.getElementById("brand"), caption = document.getElementById("caption"), bar = document.getElementById("progress");
+  brand.innerHTML = mark(52) + "<span>VidyaDesk</span>";
+
+  function loadImage(src) { return new Promise((ok, fail) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => fail(new Error("missing " + src)); i.src = src; }); }
+
+  window.ready = (async () => {
+    const get = (path) => fetch(path).then((r) => { if (!r.ok) throw new Error(path + " " + r.status); return r.json(); });
+    const [run, narration, digest] = await Promise.all([get("../chat-run.json"), get("../narration.json"), get("../digest.json")]);
+    const names = ["laptop-home", "laptop-conversation", "laptop-leads", "laptop-stats", "phone-home", "phone-conversation"];
+    const img = Object.fromEntries(await Promise.all(names.map(async (n) => [n, await loadImage(`../build/shots/${n}.png`)])));
+    const byId = Object.fromEntries(run.students.map((s) => [s.user_id, s]));
+    const data = { en: byId["demo-1"].turns, hi: byId["demo-2"].turns, or: byId["demo-3"].turns, lead: byId["demo-1"].lead,
+                   alerts: run.alerts, digest: digest.text, img };
+    let start = 0;
+    for (const s of narration.scenes) {
+      const length = s.duration + narration.gap + s.hold;
+      const root = el("section", "scene"); document.getElementById("scenes").append(root);
+      timeline.push({ id: s.id, line: s.line, start, length, root, update: SCENES[s.id](root, data) });
+      start += length;
+    }
+    window.totalDuration = start;
+    await Promise.all([...document.images].map((i) => (i.decode ? i.decode().catch(() => {}) : null)));
+    window.seek(0);
+  })();
+
+  window.seek = function (t) {
+    for (const s of timeline) {
+      const local = t - s.start;
+      const visible = local >= -0.5 && local <= s.length + 0.5;
+      s.root.style.display = visible ? "" : "none";
+      if (!visible) continue;
+      s.root.style.opacity = Math.min(prog(local, -0.3, 0.6), 1 - prog(local, s.length - 0.3, 0.6));
+      s.update(clamp(local, 0, s.length), s.length);
+    }
+    const now = timeline.find((s) => t >= s.start && t < s.start + s.length) || timeline[timeline.length - 1];
+    caption.textContent = now ? now.line : "";
+    caption.style.opacity = now ? Math.min(prog(t - now.start, 0.1, 0.4), 1 - prog(t - now.start, now.length - 0.6, 0.4)) : 0;
+    brand.style.opacity = now && (now.id === "meet" || now.id === "close") ? 0 : 1;
+    bar.style.width = (100 * clamp(t / (window.totalDuration || 1))) + "%";
+  };
+})();
+</script>
+</body>
+</html>

@@ -58,3 +58,17 @@ def test_destructive_demo_steps_refuse_any_database_but_the_test_one():
     with pytest.raises(SystemExit, match="leadagent_test"):
         assert_test_database(create_engine("postgresql+psycopg://user@localhost/leadagent"))
     assert_test_database(create_engine("postgresql+psycopg://user@localhost/leadagent_test"))  # no error
+
+
+def test_scenes_contain_no_chat_text_of_their_own():
+    # Every chat line in the video must come from the recorded run, never be retyped into the page.
+    import json
+
+    page = (DEMO / "scenes" / "index.html").read_text(encoding="utf-8")
+    run = json.loads((DEMO / "chat-run.json").read_text(encoding="utf-8"))
+    assert "chat-run.json" in page and "narration.json" in page and "digest.json" in page
+    for student in run["students"]:
+        for turn in student["turns"]:
+            for sentence in turn["reply"].replace("\n", " ").split(". "):
+                if len(sentence) > 25:
+                    assert sentence not in page
