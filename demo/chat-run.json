@@ -1,0 +1,78 @@
+{
+  "model": "gemini-3.5-flash-lite",
+  "recorded_at": "2026-10-26T12:27:46+00:00",
+  "note": "Real run of the VidyaDesk agent on the test database with fictional students. Shown word for word.",
+  "students": [
+    {
+      "user_id": "demo-1",
+      "turns": [
+        {
+          "user": "Hi, what is the fee for JEE coaching? My son is in class 11.",
+          "reply": "I am an automated assistant for BrightPath Classes, and the details you share go to the institute's team. For Class 11, we offer JEE Main + Advanced coaching which costs ₹68,000 per year. Could you please tell me your son's name?"
+        },
+        {
+          "user": "His name is Rahul Sharma. We want to join this month. Is there a demo class?",
+          "reply": "Yes, the first two classes are free for every new student as a demo."
+        },
+        {
+          "user": "Can I talk to sir?",
+          "reply": "I have forwarded your request to our team, and they will contact you soon."
+        },
+        {
+          "user": "OK, we will come on Saturday.",
+          "reply": "Our team has your message and will reply soon."
+        }
+      ],
+      "lead": {
+        "name": "Rahul Sharma",
+        "student_class": "Class 11",
+        "course": "JEE Main + Advanced",
+        "stage": "handed_off",
+        "interest": "hot",
+        "interest_reason": "Asking about demo class and wants to join this month",
+        "handoff_reason": "User asked to speak with a person/sir."
+      }
+    },
+    {
+      "user_id": "demo-2",
+      "turns": [
+        {
+          "user": "नमस्ते, JEE कोचिंग की फीस कितनी है?",
+          "reply": "नमस्ते, मैं BrightPath Classes का ऑटोमेटेड असिस्टेंट हूँ और आपके द्वारा शेयर की गई जानकारी संस्थान की टीम तक जाएगी। JEE Main + Advanced की फीस ₹68,000 प्रति वर्ष है और JEE Foundation की फीस ₹32,000 प्रति वर्ष है। क्या मैं जान सकता हूँ कि छात्र का नाम क्या है?"
+        }
+      ],
+      "lead": {
+        "name": null,
+        "student_class": null,
+        "course": null,
+        "stage": "collecting",
+        "interest": null,
+        "interest_reason": null,
+        "handoff_reason": null
+      }
+    },
+    {
+      "user_id": "demo-3",
+      "turns": [
+        {
+          "user": "ନମସ୍କାର, JEE କୋଚିଂ ଫି କେତେ?",
+          "reply": "ନମସ୍କାର, ମୁଁ BrightPath Classes ର ଏକ ସ୍ୱୟଂଚାଳିତ ସହାୟକ ଏବଂ ଆପଣ ଦେଉଥିବା ସମସ୍ତ ବିବରଣୀ ସଂସ୍ଥାର ଟିମ୍ ପାଖକୁ ଯିବ।\n\nJEE Foundation (9ମ ଏବଂ 10ମ ଶ୍ରେଣୀ) ପାଇଁ ଫି ବର୍ଷକୁ ₹32,000 ଏବଂ JEE Main + Advanced (11ମ ଏବଂ 12ମ ଶ୍ରେଣୀ) ପାଇଁ ଫି ବର୍ଷକୁ ₹68,000 ଅଟେ। \n\nଆପଣ କେଉଁ କ୍ଲାସ୍ ପାଇଁ ଜାଣିବାକୁ ଚାହୁଁଥିଲେ?"
+        }
+      ],
+      "lead": {
+        "name": null,
+        "student_class": null,
+        "course": null,
+        "stage": "collecting",
+        "interest": null,
+        "interest_reason": null,
+        "handoff_reason": null
+      }
+    }
+  ],
+  "alerts": [
+    "🔥 Hot lead #1\nRahul Sharma · Class 11 · JEE Main + Advanced · telegram user demo-1\nWhy: Asking about demo class and wants to join this month",
+    "🙋 Handoff: lead #1\nRahul Sharma · Class 11 · JEE Main + Advanced · telegram user demo-1\nWhy: User asked to speak with a person/sir.\nSend /resume 1 to switch the assistant back on.",
+    "💬 Lead #1 (Rahul Sharma) wrote:\nOK, we will come on Saturday."
+  ]
+}
