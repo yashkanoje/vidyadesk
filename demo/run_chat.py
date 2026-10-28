@@ -24,6 +24,7 @@ if __name__ == "__main__":
     use_test_database()
 
 from leadagent.channels.base import IncomingMsg  # noqa: E402
+from leadagent.language import all_versions  # noqa: E402
 from leadagent.pipeline import FALLBACK, process  # noqa: E402
 from leadagent.store import repo  # noqa: E402
 from leadagent.store.db import session_scope  # noqa: E402
@@ -64,7 +65,7 @@ def run_conversation(institute_id, students, graph=None, pause=12.0) -> dict:
                 start = len(sends)
                 process(IncomingMsg(institute_id, "telegram", user_id, f"demo:{user_id}:{i}", text), graph=graph)
                 replies = [t for to, t in sends[start:] if to == user_id]
-                if FALLBACK in replies:
+                if set(all_versions(FALLBACK)) & set(replies):  # the Hindi and Odia students get it translated
                     raise RuntimeError(f"the model gave the fallback reply to {text!r}; run the demo again later")
                 turns.append({"user": text, "reply": "\n".join(replies)})
             with session_scope() as session:

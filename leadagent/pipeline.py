@@ -3,8 +3,9 @@ import logging
 from langchain_core.messages import HumanMessage
 
 from leadagent import commands, notify
-from leadagent.agent.graph import get_graph, message_text, thread_config
+from leadagent.agent.graph import NONTEXT_PLACEHOLDER, get_graph, message_text, thread_config
 from leadagent.channels import deliver
+from leadagent.language import in_users_script
 from leadagent.locks import lock_for
 from leadagent.store import repo
 from leadagent.store.db import session_scope
@@ -13,9 +14,7 @@ from leadagent.store.models import utcnow
 log = logging.getLogger(__name__)
 
 MAX_CHARS = 1000
-# shortcut: the fallback is English only, translate per user language when an institute asks
-FALLBACK = "We'll get back to you shortly."
-NONTEXT_PLACEHOLDER = "[non-text message]"
+FALLBACK = "We'll get back to you shortly."  # sent in the user's script, see language.TRANSLATIONS
 
 
 def process(msg, graph=None) -> None:
@@ -56,11 +55,11 @@ def _process(msg, graph) -> None:
             if result["route"] == "agent":
                 reply = message_text(result["messages"][-1]).strip()
                 if not reply:
-                    reply = FALLBACK
+                    reply = in_users_script(FALLBACK, text)
                     notify.alert(institute, f"⚠️ The assistant had no answer for lead #{lead_id}. Please contact them.")
         except Exception:
             log.exception("the agent failed for lead %s", lead_id)
-            reply = FALLBACK
+            reply = in_users_script(FALLBACK, text)
             notify.alert(institute, f"⚠️ The assistant failed while answering lead #{lead_id}. Please contact them.")
         if not reply:
             return

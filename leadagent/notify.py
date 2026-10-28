@@ -5,14 +5,19 @@ from leadagent.channels import deliver
 log = logging.getLogger(__name__)
 
 
+def flat(text) -> str:
+    """User-influenced text on one line, so it cannot fake extra alert lines such as "Send /delete 7"."""
+    return " ".join(str(text).split())  # split() also breaks on \r,   and other line separators
+
+
 def describe(lead) -> str:
-    contact = lead.phone or f"{lead.channel} user {lead.channel_user_id}"
-    student_class = lead.student_class or "?"
+    contact = flat(lead.phone or f"{lead.channel} user {lead.channel_user_id}")
+    student_class = flat(lead.student_class or "?")
     if not student_class.lower().startswith("class"):  # the model often saves "Class 11" itself
         student_class = f"Class {student_class}"
     return (
-        f"{lead.name or 'Name not given'} · {student_class} · "
-        f"{lead.course or 'Course ?'} · {contact}"
+        f"{flat(lead.name or 'Name not given')} · {student_class} · "
+        f"{flat(lead.course or 'Course ?')} · {contact}"
     )
 
 

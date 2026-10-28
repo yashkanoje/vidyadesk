@@ -23,6 +23,36 @@ REWRITE_INSTRUCTION = {
 }
 
 
+# Fixed replies in Hindi and Odia, keyed by the English text. Written without a native speaker's check (Odia most of all).
+TRANSLATIONS = {
+    "Please type your question as a text message.": {
+        "devanagari": "कृपया अपना सवाल टेक्स्ट मैसेज में लिखकर भेजें।",
+        "odia": "ଦୟାକରି ଆପଣଙ୍କ ପ୍ରଶ୍ନ ଟେକ୍ସଟ୍ ମେସେଜରେ ଲେଖି ପଠାନ୍ତୁ।",
+    },
+    "Thank you for your messages. Our team will contact you soon.": {
+        "devanagari": "आपके संदेशों के लिए धन्यवाद। हमारी टीम जल्द ही आपसे संपर्क करेगी।",
+        "odia": "ଆପଣଙ୍କ ମେସେଜ ପାଇଁ ଧନ୍ୟବାଦ। ଆମ ଟିମ୍ ଶୀଘ୍ର ଆପଣଙ୍କ ସହ ଯୋଗାଯୋଗ କରିବେ।",
+    },
+    "Our team has your message and will reply soon.": {
+        "devanagari": "आपका संदेश हमारी टीम तक पहुँच गया है, वे जल्द ही जवाब देंगे।",
+        "odia": "ଆପଣଙ୍କ ମେସେଜ ଆମ ଟିମ୍ ପାଖରେ ପହଞ୍ଚିଛି, ସେମାନେ ଶୀଘ୍ର ଉତ୍ତର ଦେବେ।",
+    },
+    "We'll get back to you shortly.": {
+        "devanagari": "हम जल्द ही आपसे संपर्क करेंगे।",
+        "odia": "ଆମେ ଶୀଘ୍ର ଆପଣଙ୍କ ସହ ଯୋଗାଯୋଗ କରିବୁ।",
+    },
+}
+
+
+def in_users_script(english, user_text) -> str:
+    """A fixed reply in the script the user writes in; English for Latin letters (Hinglish too) or no text."""
+    return TRANSLATIONS.get(english, {}).get(script_of(user_text or ""), english)
+
+
+def all_versions(english) -> list[str]:
+    return [english, *TRANSLATIONS.get(english, {}).values()]
+
+
 def rewrite_script(user_text, reply_text):
     """The script the reply must be rewritten into, or None when it already matches the user's."""
     wanted, got = script_of(user_text), script_of(reply_text)

@@ -54,7 +54,7 @@ def set_interest(config: RunnableConfig, level: Literal["hot", "warm", "cold"], 
         was_hot = lead.interest == "hot"
         repo.set_interest(session, lead, level, reason)
         if level == "hot" and not was_hot:
-            notify.alert(institute, f"🔥 Hot lead #{lead.id}\n{notify.describe(lead)}\nWhy: {reason}")
+            notify.alert(institute, f"🔥 Hot lead #{lead.id}\n\n{notify.describe(lead)}\nWhy: {notify.flat(reason)}")
     return f"Interest recorded as {level}."
 
 
@@ -67,7 +67,7 @@ def handoff(config: RunnableConfig, reason: str) -> str:
         repo.hand_off(session, lead, reason)
         notify.alert(
             institute,
-            f"🙋 Handoff: lead #{lead.id}\n{notify.describe(lead)}\nWhy: {reason}\n"
+            f"🙋 Handoff: lead #{lead.id}\n\n{notify.describe(lead)}\nWhy: {notify.flat(reason)}\n\n"
             f"Send /resume {lead.id} to switch the assistant back on.",
         )
     return "Handed off. Tell the user that the institute's team will contact them soon."
