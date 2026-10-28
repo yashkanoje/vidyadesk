@@ -68,7 +68,7 @@ def test_after_handoff_the_bot_acknowledges_and_relays_to_the_owner(session, sen
     result = run_turn(graph, lead, "hello? anyone?")
     assert (result["route"], result["reply"]) == ("relay", WAITING_REPLY)
     assert len(model.calls) == 2  # the model was not called for the second message
-    assert sent == [("telegram", lead.institute_id, "999", f"💬 Lead #{lead.id} (Rahul) wrote:\nhello? anyone?")]
+    assert sent == [("telegram", lead.institute_id, "999", f"💬 Lead #{lead.id} (Rahul) wrote:\n\nhello? anyone?")]
 
 
 def test_a_non_text_message_gets_the_canned_reply(session):

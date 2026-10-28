@@ -1,6 +1,7 @@
 import csv
 import io
 import logging
+import re
 import tempfile
 from datetime import timedelta
 from pathlib import Path, PurePosixPath
@@ -10,6 +11,7 @@ import yaml
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
+from sqlalchemy.exc import IntegrityError
 
 from leadagent.actions import delete_lead_and_history
 from leadagent.auth import LoginThrottle, dummy_hash, password_matches
@@ -48,21 +50,25 @@ EXAMPLE_FACTS = (Path(__file__).resolve().parents[2] / "examples" / "brightpath.
 
 STAGES = ("new", "collecting", "qualified", "handed_off", "closed")
 INTERESTS = ("hot", "warm", "cold")
-FORMULA_START = ("=", "+", "-", "@")
+FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
+MAX_ID = 2**31 - 1  # PostgreSQL integer; a bigger number in the address bar must be a 404, not a 500
+MAX_DAYS = 3650  # timedelta overflows on a huge "days" filter
 
 
 def _filters(stage, interest, days):
-    since = utcnow() - timedelta(days=days) if days > 0 else None
+    since = utcnow() - timedelta(days=min(days, MAX_DAYS)) if days > 0 else None
     return (stage if stage in STAGES else None), (interest if interest in INTERESTS else None), since
 
 
-def _cell(value) -> str:
+def _cell(value, phone=False) -> str:
     text = "" if value is None else str(value)
+    if phone and re.fullmatch(r"\+?\d+", text):
+        return text  # a plain number such as +919876543210 is no formula; keep it readable
     return "'" + text if text.startswith(FORMULA_START) else text  # a spreadsheet must not run it as a formula
 
 
 def _owned_lead(session, institute, lead_id):
-    lead = repo.get_lead(session, institute.id, lead_id)
+    lead = repo.get_lead(session, institute.id, lead_id) if 0 < lead_id <= MAX_ID else None
     if lead is None:
         raise HTTPException(404)
     return lead
@@ -183,6 +189,8 @@ def create_institute(
             error = f"Facts: this is not valid YAML: {exc}"
         except (FactsError, ValueError) as exc:  # FactsError is a ValueError too; both messages are safe to show
             error = str(exc)
+        except IntegrityError:  # another admin added the same slug a moment earlier
+            error = f"Institute {slug.strip()!r} already exists"
         else:
             _flash(request, f"Added {slug.strip()}. Next: set-webhook, then the owner sends /whoami and you run set-owner.")
             return RedirectResponse("/dash/admin/institutes", status_code=303)
@@ -257,7 +265,7 @@ def upload_document(request: Request, slug: str, file: UploadFile = File(...)):
 def delete_document(request: Request, slug: str, document_id: int):
     with session_scope() as session:
         institute = _institute(session, _user(session, request), slug)
-        document = repo.get_document(session, institute.id, document_id)
+        document = repo.get_document(session, institute.id, document_id) if 0 < document_id <= MAX_ID else None
         if document is None:
             raise HTTPException(404)
         repo.delete_document(session, document)
@@ -293,7 +301,7 @@ def leads_csv(request: Request, slug: str, stage: str = "", interest: str = "", 
             writer.writerow(
                 [
                     lead.id, local(lead.created_at), _cell(lead.name), _cell(lead.student_class), _cell(lead.course),
-                    _cell(lead.phone or lead.channel_user_id), lead.stage, lead.interest or "", local(lead.last_user_msg_at),
+                    _cell(lead.phone or lead.channel_user_id, phone=True), lead.stage, lead.interest or "", local(lead.last_user_msg_at),
                 ]
             )
         return Response(
@@ -331,8 +339,9 @@ def lead_action(request: Request, slug: str, lead_id: int, action: str):
             _flash(request, f"Lead {lead_id} and its messages are deleted.")
             return RedirectResponse(f"/dash/{institute.slug}/leads", status_code=303)
         if action == "resume":
-            repo.resume(session, lead)
-            _flash(request, "The assistant is switched back on for this lead.")
+            resumed = repo.resume(session, lead)
+            _flash(request, "The assistant is switched back on for this lead." if resumed
+                   else "This lead is not waiting for you, so nothing changed.")
         else:
             repo.close_lead(session, lead)
             _flash(request, "Lead closed.")

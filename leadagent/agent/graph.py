@@ -16,7 +16,7 @@ from pydantic import ValidationError
 from leadagent import notify
 from leadagent.agent.prompts import system_prompt
 from leadagent.agent.tools import TOOLS
-from leadagent.language import REWRITE_INSTRUCTION, rewrite_script
+from leadagent.language import REWRITE_INSTRUCTION, all_versions, in_users_script, rewrite_script
 from leadagent.settings import get_settings
 from leadagent.store import repo
 from leadagent.store.db import session_scope
@@ -24,12 +24,13 @@ from leadagent.store.models import utcnow
 
 LIMIT = 40  # user messages per lead per rolling 24 hours
 HISTORY = 20  # messages sent to the model
-# shortcut: canned replies are English only, translate per user language when an institute asks
+# Canned replies are English here; the student gets them in their own script (language.TRANSLATIONS).
 NONTEXT_REPLY = "Please type your question as a text message."
 LIMIT_REPLY = "Thank you for your messages. Our team will contact you soon."
 # While a chat waits for the team, the student hears this at most once per window, so the bot never seems dead.
 WAITING_REPLY = "Our team has your message and will reply soon."
 WAITING_REPLY_EVERY = timedelta(hours=6)
+NONTEXT_PLACEHOLDER = "[non-text message]"  # what a sticker or photo is stored as
 
 
 class State(MessagesState):
@@ -67,6 +68,14 @@ def drop_dangling_tool_calls(messages):
     return [m for m in kept if not isinstance(m, ToolMessage) or m.tool_call_id in called]
 
 
+def users_text(state) -> str:
+    """The user's latest typed text. A sticker or photo has none, so the message before it decides the language."""
+    for message in reversed(state["messages"]):
+        if isinstance(message, HumanMessage) and message_text(message) != NONTEXT_PLACEHOLDER:
+            return message_text(message)
+    return ""
+
+
 def gate(state: State, config: RunnableConfig) -> dict:
     ids = config["configurable"]
     with session_scope() as session:
@@ -86,11 +95,11 @@ def gate(state: State, config: RunnableConfig) -> dict:
                 f"⚠️ Lead #{lead.id} sent more than {LIMIT} messages in 24 hours. The assistant will not reply "
                 f"to them again until the count drops.\n{notify.describe(lead)}",
             )
-            return {"route": "canned", "reply": LIMIT_REPLY}
+            return {"route": "canned", "reply": in_users_script(LIMIT_REPLY, users_text(state))}
         if lead.stage == "handed_off":
             return {"route": "relay", "reply": ""}
         if state["kind"] != "text":
-            return {"route": "canned", "reply": NONTEXT_REPLY}
+            return {"route": "canned", "reply": in_users_script(NONTEXT_REPLY, users_text(state))}
     return {"route": "agent", "reply": ""}
 
 
@@ -103,10 +112,11 @@ def relay(state: State, config: RunnableConfig) -> dict:
         if lead is not None:
             notify.alert(
                 institute,
-                f"💬 Lead #{lead.id} ({lead.name or 'no name'}) wrote:\n{message_text(state['messages'][-1])}",
+                f"💬 Lead #{lead.id} ({notify.flat(lead.name or 'no name')}) wrote:\n\n"
+                f"{notify.flat(message_text(state['messages'][-1]))}",
             )
-            if not repo.sent_since(session, lead.id, WAITING_REPLY, utcnow() - WAITING_REPLY_EVERY):
-                return {"reply": WAITING_REPLY}
+            if not repo.sent_since(session, lead.id, all_versions(WAITING_REPLY), utcnow() - WAITING_REPLY_EVERY):
+                return {"reply": in_users_script(WAITING_REPLY, users_text(state))}
     return {}
 
 

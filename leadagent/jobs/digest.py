@@ -21,13 +21,13 @@ def digest_text(session, institute, now) -> str | None:
     new, hot, waiting = repo.digest_leads(session, institute.id, now)
     if not (new or hot or waiting):
         return None
-    lines = [f"☀️ Daily summary: {institute.name}", f"New leads in the last 24 hours: {len(new)}"]
+    lines = [f"☀️ Daily summary: {institute.name}", "", f"New leads in the last 24 hours: {len(new)}"]
     if new:
-        lines += _listing("New leads:", new)
+        lines += _listing("🆕 New leads:", new)
     if hot:
-        lines += _listing("Hot leads to call:", hot)
+        lines += _listing("🔥 Hot leads to call:", hot)
     if waiting:
-        lines += _listing("Waiting for you (send /resume <id> when done):", waiting)
+        lines += _listing("🙋 Waiting for you (send /resume <id> when done):", waiting)
     return "\n".join(lines)
 
 
