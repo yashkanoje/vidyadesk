@@ -17,8 +17,10 @@ dashboard of who needs a call.
 
 *Screenshots use made-up sample leads.*
 
-**Demo video (under 2 min):** [watch it](docs/demo/vidyadesk-demo.mp4). The chats in it come from a real recorded run of the
-agent on sample data; how it is built is in [demo/](demo/README.md).
+**Demo video (under 2 min).** The chats in it come from a real recorded run of the agent on sample data; how it is
+built is in [demo/](demo/README.md). If the player does not load, [download it](docs/demo/vidyadesk-demo.mp4).
+
+https://github.com/user-attachments/assets/3306f822-86a4-471b-9d21-b0e8e1ae84e1
 
 ## The problem
 
