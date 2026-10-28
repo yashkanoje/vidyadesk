@@ -48,6 +48,10 @@ def add_institute(
         ZoneInfo(timezone)
     except (ZoneInfoNotFoundError, ValueError):
         raise ValueError(f"unknown timezone {timezone!r}")
+    if not name or not name.strip():
+        raise ValueError("the institute needs a name")
+    if not telegram_token or not telegram_token.strip():
+        raise ValueError("the institute needs its Telegram bot token")
     if whatsapp_number_id and not whatsapp_token:
         raise ValueError("a WhatsApp number needs its access token")
     if repo.institute_by_slug(session, slug) is not None:

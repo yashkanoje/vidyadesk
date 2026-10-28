@@ -154,9 +154,13 @@ def hand_off(session, lead, reason) -> None:
     lead.handoff_reason = reason
 
 
-def resume(session, lead) -> None:
+def resume(session, lead) -> bool:
+    """Switch the assistant back on for a handed-off lead. False, and no change, for any other stage."""
+    if lead.stage != "handed_off":
+        return False
     lead.stage = "qualified" if _has_core_details(lead) else "collecting"
     lead.handoff_reason = None
+    return True
 
 
 def delete_lead(session, lead) -> None:

@@ -1,10 +1,17 @@
 """Fixes from the spec's Section 15 backlog (28 Oct 2026), each with the case that was wrong before."""
+import pytest
+import yaml
+from fastapi.testclient import TestClient
 from langchain_core.messages import AIMessage
 
-from helpers import ScriptedModel, make_institute, make_lead, run_turn, tool_call
+from helpers import FACTS, ScriptedModel, make_institute, make_lead, make_user, run_turn, tool_call
 from leadagent import notify
 from leadagent.agent.graph import NONTEXT_REPLY, WAITING_REPLY, build_graph, get_checkpointer
+from leadagent.app import app
 from leadagent.channels.base import IncomingMsg
+from leadagent.cli import add_institute
+from leadagent.dashboard.routes import _cell
+from leadagent.facts import parse_facts
 from leadagent.language import TRANSLATIONS, in_users_script
 from leadagent.pipeline import FALLBACK, process
 from leadagent.store import repo
@@ -66,3 +73,78 @@ def test_the_waiting_reply_is_not_repeated_when_the_student_switches_script(sess
     repo.log_message(session, lead, "assistant", first["reply"])  # the pipeline logs what it sent
     session.commit()
     assert run_turn(graph, lead, "hello?")["reply"] == ""
+
+
+# --- dashboard and command fixes ---
+
+
+@pytest.fixture
+def owner(session):
+    institute = make_institute(session, "bright")
+    make_user(session, institute=institute)
+    client = TestClient(app)
+    client.post("/dash/login", data={"email": "owner@bright.test", "password": "correct horse 1"})
+    return client, institute
+
+
+@pytest.mark.parametrize("path", ["/dash/bright/leads/99999999999", "/dash/bright/leads/0"])
+def test_an_out_of_range_lead_number_is_a_404(owner, path):
+    client, _ = owner
+    assert client.get(path).status_code == 404
+    assert client.post(path + "/close").status_code == 404
+
+
+def test_a_huge_days_filter_does_not_crash(owner):
+    client, _ = owner
+    assert client.get("/dash/bright/leads?days=999999999").status_code == 200
+    assert client.get("/dash/bright/leads.csv?days=999999999").status_code == 200
+
+
+def test_an_out_of_range_document_number_is_a_404(owner):
+    client, _ = owner
+    assert client.post("/dash/bright/documents/99999999999/delete").status_code == 404
+
+
+@pytest.mark.parametrize("stage", ["new", "collecting", "closed"])
+def test_resume_only_switches_back_a_handed_off_lead(owner, session, stage):
+    client, institute = owner
+    lead = make_lead(session, institute, "1", stage=stage)
+    page = client.post(f"/dash/bright/leads/{lead.id}/resume").text
+    session.refresh(lead)
+    assert lead.stage == stage and "nothing changed" in page
+
+
+def test_telegram_resume_of_a_closed_lead_changes_nothing(session, sent):
+    institute = make_institute(session)
+    lead = make_lead(session, institute, "555", stage="closed")
+    process(IncomingMsg(institute.id, "telegram", "999", "tg:1", f"/resume {lead.id}"), graph=graph_with())
+    session.refresh(lead)
+    assert lead.stage == "closed"
+    assert sent[-1][3] == f"Lead {lead.id} is not waiting for you, so nothing changed."
+
+
+def test_csv_guards_tab_and_carriage_return_but_not_plain_phone_numbers():
+    assert _cell("\t=1+1") == "'\t=1+1"
+    assert _cell("\r=1+1") == "'\r=1+1"
+    assert _cell("+919876543210", phone=True) == "+919876543210"
+    assert _cell("+91-98765-43210", phone=True) == "'+91-98765-43210"  # Excel would calculate this one
+    assert _cell("=cmd", phone=True) == "'=cmd"
+
+
+@pytest.mark.parametrize("field", ["name", "telegram_token"])
+def test_an_institute_needs_a_name_and_a_token(session, field):
+    values = {"name": "Vidya", "telegram_token": "123:ABC", field: "  "}
+    with pytest.raises(ValueError):
+        add_institute(session, slug="vidya", facts=parse_facts(FACTS), **values)
+
+
+def test_two_admins_adding_the_same_slug_get_a_message_not_a_500(session, monkeypatch):
+    make_user(session, email="admin@lead.test", role="admin")
+    make_institute(session, "vidya")
+    client = TestClient(app)
+    client.post("/dash/login", data={"email": "admin@lead.test", "password": "correct horse 1"})
+    monkeypatch.setattr(repo, "institute_by_slug", lambda session, slug: None)  # both checks ran before either insert
+    form = {"slug": "vidya", "name": "Vidya", "telegram_token": "1:A", "timezone": "Asia/Kolkata",
+            "facts_yaml": yaml.safe_dump(FACTS, allow_unicode=True)}
+    response = client.post("/dash/admin/institutes", data=form)
+    assert response.status_code == 400 and "already exists" in response.text

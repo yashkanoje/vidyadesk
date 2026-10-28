@@ -22,7 +22,8 @@ def handle(session, institute, msg) -> str | None:
     if lead is None:
         return f"No lead {parts[1]} for this institute."
     if parts[0] == "/resume":
-        repo.resume(session, lead)
+        if not repo.resume(session, lead):
+            return f"Lead {lead.id} is not waiting for you, so nothing changed."
         return f"Assistant switched back on for lead {lead.id}."
     # Wait for any reply being written for this lead: it would otherwise save its chat state after the delete.
     delete_lead_and_history(session, lead)

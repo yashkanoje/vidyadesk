@@ -83,7 +83,7 @@ is rewritten once if it came out in a different script from the user's message.
 - **Reliability details.** A per-lead lock serialises replies and deletes, resent webhooks are dropped with
   `INSERT … ON CONFLICT DO NOTHING RETURNING`, and there is a 24-hour message cap per lead. Nudges re-check their
   rules under the lock right before sending.
-- **Tested.** 325 automated tests (graph with a scripted model, tenant isolation, escaping, CSV, uploads, login
+- **Tested.** 344 automated tests (graph with a scripted model, tenant isolation, escaping, CSV, uploads, login
   throttle) run in CI against PostgreSQL with pgvector.
 
 ## Results
@@ -92,7 +92,7 @@ is rewritten once if it came out in a different script from the user's message.
 |---|---|---|
 | Behaviour checks on Gemini 3.5 Flash-Lite | **26 of 26** | One run, 16 Oct 2026; model answers vary between runs |
 | Retrieval: expected passage in top 3 | **21 of 21** on the `.txt` prospectus, **21 of 21** on a PDF copy | 16 Oct 2026 |
-| Automated tests | **325 passed** | CI on every push |
+| Automated tests | **344 passed** | CI on every push |
 | Live demo | Telegram bot, owner alerts, follow-up and morning summary verified end to end | 14–15 Oct 2026 |
 
 ## Tech stack
